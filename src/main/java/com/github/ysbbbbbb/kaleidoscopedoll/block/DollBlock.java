@@ -7,14 +7,18 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.ScheduledTickAccess;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.HorizontalDirectionalBlock;
+import net.minecraft.world.level.block.Mirror;
+import net.minecraft.world.level.block.Rotation;
+import net.minecraft.world.level.block.state.properties.RotationSegment;
 import net.minecraft.world.level.block.SimpleWaterloggedBlock;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -22,7 +26,9 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
+import net.minecraft.world.level.block.state.properties.IntegerProperty;
 import net.minecraft.world.level.block.state.properties.NoteBlockInstrument;
+import net.minecraft.world.ticks.TickPriority;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.phys.BlockHitResult;
@@ -32,10 +38,12 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
 
 @SuppressWarnings("deprecation")
-public class DollBlock extends HorizontalDirectionalBlock implements SimpleWaterloggedBlock {
-    private static final MapCodec<DollBlock> CODEC = simpleCodec(prop -> new DollBlock());
+public class DollBlock extends Block implements SimpleWaterloggedBlock {
+    private static final MapCodec<DollBlock> CODEC = simpleCodec(DollBlock::new);
+    private static final IntegerProperty ROTATION = BlockStateProperties.ROTATION_16;
     private static final BooleanProperty WATERLOGGED = BlockStateProperties.WATERLOGGED;
-    private static final VoxelShape DOLL_SHAPE = Block.box(2.0d, 0.0d, 2.0d, 14.0d, 12.0d, 14.0d);
+
+    private static final VoxelShape DOLL_SHAPE = Block.box(2, 0, 2, 14, 12, 14);
 
     private static final double PARTICLE_OFFSET_RANGE = 0.25;
     private static final double PARTICLE_HEIGHT_OFFSET = 1.0;
@@ -47,23 +55,21 @@ public class DollBlock extends HorizontalDirectionalBlock implements SimpleWater
     private static final float PITCH_VARIANCE = 0.5f;
     private static final float BASE_PITCH = 0.75f;
 
-    public DollBlock() {
-        super(BlockBehaviour.Properties.of()
-                .instrument(NoteBlockInstrument.BASEDRUM)
-                .sound(SoundType.WOOL)
-                .strength(0f, 10f)
-                .noOcclusion());
-        this.registerDefaultState(this.stateDefinition.any().setValue(FACING, Direction.SOUTH)
+    public DollBlock(BlockBehaviour.Properties properties) {
+        super(properties);
+        this.registerDefaultState(this.stateDefinition.any()
+                .setValue(ROTATION, 0)
                 .setValue(WATERLOGGED, false));
     }
 
     @Override
-    public BlockState updateShape(BlockState currentState, Direction direction, BlockState neighborState,
-                                  LevelAccessor level, BlockPos currentPos, BlockPos neighborPos) {
+    public BlockState updateShape(BlockState currentState, LevelReader level, ScheduledTickAccess tickAccess,
+                                  BlockPos currentPos, Direction direction, BlockPos neighborPos,
+                                  BlockState neighborState, RandomSource random) {
         if (currentState.getValue(WATERLOGGED)) {
-            level.scheduleTick(currentPos, Fluids.WATER, Fluids.WATER.getTickDelay(level));
+            tickAccess.scheduleTick(currentPos, Fluids.WATER, Fluids.WATER.getTickDelay(level), TickPriority.NORMAL);
         }
-        return super.updateShape(currentState, direction, neighborState, level, currentPos, neighborPos);
+        return super.updateShape(currentState, level, tickAccess, currentPos, direction, neighborPos, neighborState, random);
     }
 
     @Override
@@ -117,19 +123,18 @@ public class DollBlock extends HorizontalDirectionalBlock implements SimpleWater
      * 播放玩偶音效
      */
     private void playDollSound(ServerLevel serverLevel, BlockPos blockPos) {
-        float pitch = BASE_PITCH + serverLevel.random.nextFloat() * PITCH_VARIANCE;
+        float pitch = BASE_PITCH + serverLevel.getRandom().nextFloat() * PITCH_VARIANCE;
         serverLevel.playSound(null, blockPos, ModSounds.DUCK_TOY,
                 SoundSource.BLOCKS, BASE_VOLUME, pitch);
     }
 
     @Override
     public @Nullable BlockState getStateForPlacement(BlockPlaceContext context) {
-        FluidState fluidState = context.getLevel().getFluidState(context.getClickedPos());
-        boolean isWaterlogged = fluidState.getType() == Fluids.WATER;
-
+        boolean isWaterAt = context.getLevel().isWaterAt(context.getClickedPos());
+        int rotation = RotationSegment.convertToSegment(context.getRotation());
         return this.defaultBlockState()
-                .setValue(FACING, context.getHorizontalDirection().getOpposite())
-                .setValue(WATERLOGGED, isWaterlogged);
+                .setValue(ROTATION, rotation)
+                .setValue(WATERLOGGED, isWaterAt);
     }
 
     @Override
@@ -139,11 +144,23 @@ public class DollBlock extends HorizontalDirectionalBlock implements SimpleWater
 
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
-        builder.add(FACING, WATERLOGGED);
+        builder.add(ROTATION, WATERLOGGED);
     }
 
     @Override
-    protected MapCodec<? extends HorizontalDirectionalBlock> codec() {
+    public BlockState rotate(BlockState state, Rotation rotation) {
+        int max = RotationSegment.getMaxSegmentIndex() + 1;
+        return state.setValue(ROTATION, rotation.rotate(state.getValue(ROTATION), max));
+    }
+
+    @Override
+    public BlockState mirror(BlockState pState, Mirror pMirror) {
+        int max = RotationSegment.getMaxSegmentIndex() + 1;
+        return pState.setValue(ROTATION, pMirror.mirror(pState.getValue(ROTATION), max));
+    }
+
+    @Override
+    protected MapCodec<? extends Block> codec() {
         return CODEC;
     }
 }

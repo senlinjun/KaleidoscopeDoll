@@ -1,6 +1,7 @@
 package com.github.ysbbbbbb.kaleidoscopedoll.item;
 
 import com.github.ysbbbbbb.kaleidoscopedoll.config.GeneralConfig;
+import com.github.ysbbbbbb.kaleidoscopedoll.data.custom.ServerCustomDollLoader;
 import com.github.ysbbbbbb.kaleidoscopedoll.entity.DollEntity;
 import com.github.ysbbbbbb.kaleidoscopedoll.event.ModRegisterEvent;
 import com.github.ysbbbbbb.kaleidoscopedoll.init.ModBlocks;
@@ -14,16 +15,19 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
+import org.joml.Vector3f;
+import org.joml.Vector3fc;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.*;
+import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -32,15 +36,17 @@ import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 import static com.github.ysbbbbbb.kaleidoscopedoll.entity.DollEntity.TAG_BLOCK_STATE;
+import static com.github.ysbbbbbb.kaleidoscopedoll.entity.DollEntity.TAG_CUSTOM_DOLL_ID;
 
 public class DollEntityItem extends Item {
     private static final String TAG_DOLL_ENTITY = "doll_entity";
     private static final int THROW_DURATION = 5;
 
-    public DollEntityItem() {
-        super(new Properties());
+    public DollEntityItem(Item.Properties properties) {
+        super(properties);
     }
 
     public static ItemStack createItemWithEntity(DollEntity entity) {
@@ -57,13 +63,43 @@ public class DollEntityItem extends Item {
         return stack;
     }
 
+    public static ItemStack createItemWithCustomDollId(String customDollId) {
+        ItemStack stack = new ItemStack(ModItems.DOLL_ENTITY_ITEM);
+        CompoundTag entityTag = new CompoundTag();
+        entityTag.putString(TAG_CUSTOM_DOLL_ID, customDollId);
+        stack.set(ModDataComponent.TAG_DOLL_ENTITY, entityTag);
+        return stack;
+    }
+
+    private static final String TAG_SCALE = "doll_scale";
+    private static final String TAG_TRANSLATION = "doll_translation";
+    private static final String TAG_HOLD_ITEM = "hold_item";
+    private static final String TAG_ITEM_SCALE = "item_scale";
+    private static final String TAG_ITEM_TRANSLATION = "item_translation";
+    private static final String TAG_ITEM_ROTATION = "item_rotation";
+
     public static void saveDollEntity(ItemStack stack, DollEntity entity) {
         if (!stack.is(ModItems.DOLL_ENTITY_ITEM)) {
             return;
         }
 
         CompoundTag entityTag = new CompoundTag();
-        entity.addAdditionalSaveData(entityTag);
+        net.minecraft.world.level.block.state.BlockState blockState = entity.getDisplayBlockState();
+        if (blockState != null && !blockState.isAir()) {
+            entityTag.put(TAG_BLOCK_STATE, NbtUtils.writeBlockState(blockState));
+        }
+        entityTag.put(TAG_SCALE, writeVector3f(entity.getDisplayScale()));
+        entityTag.put(TAG_TRANSLATION, writeVector3f(entity.getDisplayTranslation()));
+        if (!entity.getCustomDollId().isEmpty()) {
+            entityTag.putString(TAG_CUSTOM_DOLL_ID, entity.getCustomDollId());
+        }
+        if (!entity.getHoldItem().isEmpty()) {
+            ItemStack.CODEC.encodeStart(net.minecraft.nbt.NbtOps.INSTANCE, entity.getHoldItem())
+                    .result().ifPresent(tag -> entityTag.put(TAG_HOLD_ITEM, (CompoundTag) tag));
+        }
+        entityTag.put(TAG_ITEM_SCALE, writeVector3f(entity.getItemScale()));
+        entityTag.put(TAG_ITEM_TRANSLATION, writeVector3f(entity.getItemTranslation()));
+        entityTag.put(TAG_ITEM_ROTATION, writeVector3f(entity.getItemRotation()));
 
         stack.set(ModDataComponent.TAG_DOLL_ENTITY, entityTag);
     }
@@ -75,25 +111,75 @@ public class DollEntityItem extends Item {
 
         CompoundTag entityTag = stack.get(ModDataComponent.TAG_DOLL_ENTITY);
         if (entityTag != null && entityTag.contains(TAG_BLOCK_STATE)) {
-            CompoundTag compound = entityTag.getCompound(TAG_BLOCK_STATE);
-            HolderLookup<Block> lookup = BuiltInRegistries.BLOCK.asLookup();
-            return NbtUtils.readBlockState(lookup, compound).getBlock();
+            CompoundTag compound = entityTag.getCompoundOrEmpty(TAG_BLOCK_STATE);
+            return NbtUtils.readBlockState(BuiltInRegistries.BLOCK, compound).getBlock();
         }
 
         return ModBlocks.PURPLE_DOLL_GIFT_BOX;
     }
 
-    public static DollEntity getDollEntity(Level level, ItemStack stack) {
+    public static String getCustomDollIdFromItemStack(ItemStack stack) {
         if (!stack.is(ModItems.DOLL_ENTITY_ITEM)) {
-            return new DollEntity(ModEntities.DOLL, level);
+            return "";
+        }
+
+        CompoundTag entityTag = stack.get(ModDataComponent.TAG_DOLL_ENTITY);
+        if (entityTag != null && entityTag.contains(TAG_CUSTOM_DOLL_ID)) {
+            return entityTag.getStringOr(TAG_CUSTOM_DOLL_ID, "");
+        }
+
+        return "";
+    }
+
+    public static DollEntity getDollEntity(Level level, ItemStack stack) {
+        DollEntity entity = new DollEntity(ModEntities.DOLL, level);
+        if (!stack.is(ModItems.DOLL_ENTITY_ITEM)) {
+            return entity;
         }
         CompoundTag entityTag = stack.get(ModDataComponent.TAG_DOLL_ENTITY);
         if (entityTag == null) {
-            return new DollEntity(ModEntities.DOLL, level);
+            return entity;
         }
-        DollEntity entity = new DollEntity(ModEntities.DOLL, level);
-        entity.load(entityTag);
+        if (entityTag.contains(TAG_BLOCK_STATE)) {
+            HolderLookup<Block> lookup = level.holderLookup(net.minecraft.core.registries.Registries.BLOCK);
+            entity.setDisplayBlockState(NbtUtils.readBlockState(lookup, entityTag.getCompoundOrEmpty(TAG_BLOCK_STATE)));
+        }
+        if (entityTag.contains(TAG_CUSTOM_DOLL_ID)) {
+            entity.setCustomDollId(entityTag.getStringOr(TAG_CUSTOM_DOLL_ID, ""));
+        }
+        if (entityTag.contains(TAG_SCALE)) {
+            entity.setDisplayScale(readVector3f(entityTag.getCompoundOrEmpty(TAG_SCALE)));
+        }
+        if (entityTag.contains(TAG_TRANSLATION)) {
+            entity.setDisplayTranslation(readVector3f(entityTag.getCompoundOrEmpty(TAG_TRANSLATION)));
+        }
+        if (entityTag.contains(TAG_HOLD_ITEM)) {
+            ItemStack.CODEC.parse(net.minecraft.resources.RegistryOps.create(net.minecraft.nbt.NbtOps.INSTANCE, level.registryAccess()),
+                            entityTag.getCompoundOrEmpty(TAG_HOLD_ITEM))
+                    .result().ifPresent(entity::setHoldItem);
+        }
+        if (entityTag.contains(TAG_ITEM_SCALE)) {
+            entity.setItemScale(readVector3f(entityTag.getCompoundOrEmpty(TAG_ITEM_SCALE)));
+        }
+        if (entityTag.contains(TAG_ITEM_TRANSLATION)) {
+            entity.setItemTranslation(readVector3f(entityTag.getCompoundOrEmpty(TAG_ITEM_TRANSLATION)));
+        }
+        if (entityTag.contains(TAG_ITEM_ROTATION)) {
+            entity.setItemRotation(readVector3f(entityTag.getCompoundOrEmpty(TAG_ITEM_ROTATION)));
+        }
         return entity;
+    }
+
+    private static Vector3f readVector3f(CompoundTag tag) {
+        return new Vector3f(tag.getFloatOr("x", 0), tag.getFloatOr("y", 0), tag.getFloatOr("z", 0));
+    }
+
+    private static CompoundTag writeVector3f(Vector3fc vector) {
+        CompoundTag tag = new CompoundTag();
+        tag.putFloat("x", vector.x());
+        tag.putFloat("y", vector.y());
+        tag.putFloat("z", vector.z());
+        return tag;
     }
 
     public static boolean hasEntityData(ItemStack stack) {
@@ -105,7 +191,23 @@ public class DollEntityItem extends Item {
     }
 
     public static void addCreativeTab(CreativeModeTab.Output output) {
-        ModRegisterEvent.DOLL_BLOCKS.values().forEach(block -> output.accept(createItemWithBlockState(block.defaultBlockState())));
+        // 自定义玩偶
+        ServerCustomDollLoader.getModels().forEach(id -> output.accept(createItemWithCustomDollId(id)));
+
+        // 基础方块玩偶
+        ModRegisterEvent.DOLL_BLOCKS.values().forEach(block -> {
+            Identifier id = BuiltInRegistries.BLOCK.getKey(block);
+            if (id != null && !GeneralConfig.ENABLE_SPONSORED_DOLL.get()
+                    && ModRegisterEvent.SPECIAL_TOOLTIPS.containsKey(id)
+                    && !ModRegisterEvent.AUTHOR_DOLLS.contains(id)) {
+                // 赞助的玩偶跳过
+                return;
+            }
+
+            BlockState blockState = block.defaultBlockState();
+            ItemStack stack = createItemWithBlockState(blockState);
+            output.accept(stack);
+        });
     }
 
     private boolean mayPlace(Player pPlayer, Direction pDirection, ItemStack pItemStack, BlockPos pPos) {
@@ -113,21 +215,21 @@ public class DollEntityItem extends Item {
     }
 
     @Override
-    public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
+    public InteractionResult use(Level level, Player player, InteractionHand hand) {
         ItemStack itemStack = player.getItemInHand(hand);
 
         // 如果玩家蹲下，则进入投掷模式
         if (player.isShiftKeyDown() && GeneralConfig.DOLL_CAN_BE_THROWN.get()) {
             player.startUsingItem(hand);
-            return InteractionResultHolder.consume(itemStack);
+            return InteractionResult.SUCCESS;
         }
 
         // 否则返回通过，允许正常的右键放置
-        return InteractionResultHolder.pass(itemStack);
+        return InteractionResult.PASS;
     }
 
     @Override
-    public void releaseUsing(ItemStack stack, Level level, LivingEntity entity, int timeLeft) {
+    public boolean releaseUsing(ItemStack stack, Level level, LivingEntity entity, int timeLeft) {
         // 计算使用时间
         int useTime = this.getUseDuration(stack, entity) - timeLeft;
 
@@ -136,16 +238,17 @@ public class DollEntityItem extends Item {
             int strength = useTime - THROW_DURATION;
             throwDollEntity(level, entity, stack, strength);
         }
+        return true;
     }
 
     private void throwDollEntity(Level level, LivingEntity entity, ItemStack stack, int strength) {
-        if (!level.isClientSide) {
+        if (!level.isClientSide()) {
             // 从物品获取或创建实体
             DollEntity dollEntity = getDollEntity(level, stack);
             dollEntity.setInThrowing(true);
 
             // 如果实体的 BlockState 为空气，设置为紫色礼盒
-            if (dollEntity.getDisplayBlockState().isAir()) {
+            if (getCustomDollIdFromItemStack(stack).isEmpty() && dollEntity.getDisplayBlockState().isAir()) {
                 dollEntity.setDisplayBlockState(ModBlocks.PURPLE_DOLL_GIFT_BOX.defaultBlockState());
             }
 
@@ -182,8 +285,8 @@ public class DollEntityItem extends Item {
     }
 
     @Override
-    public UseAnim getUseAnimation(ItemStack stack) {
-        return UseAnim.BOW;
+    public ItemUseAnimation getUseAnimation(ItemStack stack) {
+        return ItemUseAnimation.BOW;
     }
 
     @Override
@@ -211,7 +314,7 @@ public class DollEntityItem extends Item {
         DollEntity dollEntity = getDollEntity(level, stack);
 
         // 如果实体的BlockState为空气，设置为紫色礼盒
-        if (dollEntity.getDisplayBlockState().isAir()) {
+        if (getCustomDollIdFromItemStack(stack).isEmpty() && dollEntity.getDisplayBlockState().isAir()) {
             dollEntity.setDisplayBlockState(ModBlocks.PURPLE_DOLL_GIFT_BOX.defaultBlockState());
         }
 
@@ -221,22 +324,22 @@ public class DollEntityItem extends Item {
 
         // 生成实体到世界
         if (dollEntity.canSurvives()) {
-            if (!level.isClientSide) {
+            if (!level.isClientSide()) {
                 dollEntity.playSound(SoundEvents.WOOL_PLACE, 1.0F, 1.0F);
                 level.gameEvent(player, GameEvent.ENTITY_PLACE, dollEntity.position());
                 level.addFreshEntity(dollEntity);
             }
             // 消耗物品
             stack.shrink(1);
-            return InteractionResult.sidedSuccess(level.isClientSide);
+            return level.isClientSide() ? InteractionResult.SUCCESS : InteractionResult.SUCCESS_SERVER;
         }
 
         return InteractionResult.FAIL;
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltips, TooltipFlag isAdvanced) {
-        tooltips.add(Component.translatable("item.kaleidoscopedoll.doll_entity_item.throw.tooltip").withStyle(ChatFormatting.GRAY));
-        tooltips.add(Component.translatable("item.kaleidoscopedoll.doll_entity_item.place.tooltip").withStyle(ChatFormatting.GRAY));
+    public void appendHoverText(ItemStack stack, Item.TooltipContext context, TooltipDisplay tooltipDisplay, Consumer<Component> consumer, TooltipFlag isAdvanced) {
+        consumer.accept(Component.translatable("item.kaleidoscopedoll.doll_entity_item.throw.tooltip").withStyle(ChatFormatting.DARK_GRAY));
+        consumer.accept(Component.translatable("item.kaleidoscopedoll.doll_entity_item.place.tooltip").withStyle(ChatFormatting.DARK_GRAY));
     }
 }

@@ -22,26 +22,26 @@ public class DollClickEntityEvent {
     }
 
     private static InteractionResult onUseEntity(Player player, Level level, InteractionHand hand, Entity entity, EntityHitResult hitResult) {
-        ItemStack handItem = player.getItemInHand(hand);
+        ItemStack mainHandItem = player.getMainHandItem();
 
-        if (handItem.is(ModItems.DOLL_ENTITY_ITEM) && GeneralConfig.DOLL_CAN_MOUNT_ENTITIES.get()) {
+        if (mainHandItem.is(ModItems.DOLL_ENTITY_ITEM) && GeneralConfig.DOLL_CAN_MOUNT_ENTITIES.get()) {
             // 检查骑乘层数
             int ridingLayers = getRidingLayers(entity);
             if (ridingLayers >= MAX_RIDING_LAYERS) {
+                // 如果骑乘层数达到最大值，取消操作
                 return InteractionResult.PASS;
             }
 
-            DollEntity dollEntity = DollEntityItem.getDollEntity(level, handItem);
+            DollEntity dollEntity = DollEntityItem.getDollEntity(level, mainHandItem);
             dollEntity.setPos(entity.getX(), entity.getY() + 1.5, entity.getZ());
             dollEntity.setYRot(player.getYRot() - 180);
-
             if (dollEntity.startRiding(entity)) {
-                if (!level.isClientSide) {
+                if (!level.isClientSide()) {
                     level.addFreshEntity(dollEntity);
                 }
                 entity.playSound(SoundEvents.WOOL_PLACE, 1.0F, 1.0F);
                 if (!player.getAbilities().instabuild) {
-                    handItem.shrink(1);
+                    mainHandItem.shrink(1);
                 }
                 return InteractionResult.SUCCESS;
             }
@@ -50,10 +50,18 @@ public class DollClickEntityEvent {
         return InteractionResult.PASS;
     }
 
+    /**
+     * 计算实体的骑乘层数
+     *
+     * @param entity 要检查的实体
+     * @return 骑乘层数（包括当前实体）
+     */
     private static int getRidingLayers(Entity entity) {
+        // 当前实体算作第1层
         int layers = 1;
         Entity current = entity;
 
+        // 向上遍历所有乘坐的实体
         while (current.getVehicle() != null) {
             current = current.getVehicle();
             layers++;

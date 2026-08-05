@@ -1,0 +1,274 @@
+{
+  "credit": "Made with Blockbench",
+  "display": {
+    "firstperson_lefthand": {
+      "rotation": [
+        -9,
+        155,
+        -3
+      ],
+      "scale": [
+        0.5,
+        0.5,
+        0.5
+      ],
+      "translation": [
+        0.5,
+        4,
+        0
+      ]
+    },
+    "firstperson_righthand": {
+      "rotation": [
+        -9,
+        155,
+        -3
+      ],
+      "scale": [
+        0.5,
+        0.5,
+        0.5
+      ],
+      "translation": [
+        0.5,
+        4,
+        0
+      ]
+    },
+    "fixed": {
+      "scale": [
+        1.2,
+        1.2,
+        1.2
+      ],
+      "translation": [
+        0,
+        3.5,
+        0
+      ]
+    },
+    "ground": {
+      "scale": [
+        0.5,
+        0.5,
+        0.5
+      ],
+      "translation": [
+        0,
+        2,
+        0
+      ]
+    },
+    "gui": {
+      "rotation": [
+        30,
+        225,
+        0
+      ],
+      "scale": [
+        1.1,
+        1.1,
+        1.1
+      ],
+      "translation": [
+        0.75,
+        4.5,
+        0
+      ]
+    },
+    "head": {
+      "translation": [
+        -0.25,
+        14.5,
+        0
+      ]
+    },
+    "thirdperson_lefthand": {
+      "rotation": [
+        60,
+        0,
+        0
+      ],
+      "translation": [
+        -6,
+        2,
+        3
+      ]
+    },
+    "thirdperson_righthand": {
+      "rotation": [
+        60,
+        0,
+        0
+      ],
+      "translation": [
+        -6,
+        2,
+        3
+      ]
+    }
+  },
+  "elements": [
+    {
+      "faces": {
+        "down": {
+          "texture": "#1",
+          "uv": [
+            0,
+            9,
+            6,
+            15
+          ]
+        },
+        "east": {
+          "texture": "#1",
+          "uv": [
+            0,
+            9,
+            6,
+            15
+          ]
+        },
+        "north": {
+          "texture": "#1",
+          "uv": [
+            7,
+            9,
+            13,
+            15
+          ]
+        },
+        "south": {
+          "texture": "#1",
+          "uv": [
+            0,
+            9,
+            6,
+            15
+          ]
+        },
+        "up": {
+          "texture": "#1",
+          "uv": [
+            0,
+            9,
+            6,
+            15
+          ]
+        },
+        "west": {
+          "texture": "#1",
+          "uv": [
+            0,
+            9,
+            6,
+            15
+          ]
+        }
+      },
+      "from": [
+        8,
+        0,
+        6
+      ],
+      "rotation": {
+        "origin": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "x": 180.0,
+        "y": 44.999996,
+        "z": 180.0
+      },
+      "to": [
+        14,
+        6,
+        12
+      ]
+    },
+    {
+      "faces": {
+        "down": {
+          "texture": "#1",
+          "uv": [
+            0,
+            9,
+            4,
+            13
+          ]
+        },
+        "east": {
+          "texture": "#1",
+          "uv": [
+            0,
+            9,
+            4,
+            13
+          ]
+        },
+        "north": {
+          "texture": "#1",
+          "uv": [
+            9,
+            4,
+            13,
+            8
+          ]
+        },
+        "south": {
+          "texture": "#1",
+          "uv": [
+            0,
+            9,
+            4,
+            13
+          ]
+        },
+        "up": {
+          "texture": "#1",
+          "uv": [
+            0,
+            9,
+            4,
+            13
+          ]
+        },
+        "west": {
+          "texture": "#1",
+          "uv": [
+            0,
+            9,
+            4,
+            13
+          ]
+        }
+      },
+      "from": [
+        2,
+        0,
+        6
+      ],
+      "rotation": {
+        "origin": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "x": 180.0,
+        "y": 67.49999,
+        "z": 180.0
+      },
+      "to": [
+        6,
+        4,
+        10
+      ]
+    }
+  ],
+  "render_type": "cutout",
+  "textures": {
+    "1": "kaleidoscope_doll:block/doll/doll_9",
+    "particle": "block/white_wool"
+  }
+}

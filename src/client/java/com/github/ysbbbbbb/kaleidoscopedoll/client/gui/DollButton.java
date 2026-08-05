@@ -1,0 +1,31 @@
+package com.github.ysbbbbbb.kaleidoscopedoll.client.gui;
+
+import com.github.ysbbbbbb.kaleidoscopedoll.KaleidoscopeDoll;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.ImageButton;
+import net.minecraft.client.gui.components.WidgetSprites;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.ItemStack;
+
+public class DollButton extends ImageButton {
+    private static final Identifier BG = Identifier.fromNamespaceAndPath(KaleidoscopeDoll.MOD_ID, "textures/gui/computer.png");
+    private static final WidgetSprites SPRITES = new WidgetSprites(BG);
+    private final ItemStack doll;
+
+    public DollButton(int pX, int pY, ItemStack doll, OnPress onPress) {
+        super(pX, pY, 18, 18, SPRITES, onPress, Component.empty());
+        this.doll = doll;
+    }
+
+    @Override
+    public void extractContents(GuiGraphicsExtractor graphics, int pMouseX, int pMouseY, float pPartialTick) {
+        graphics.blit(BG, this.getX(), this.getY(), 177, 16, 18, 18, 256, 256);
+        graphics.fakeItem(this.doll, this.getX() + 1, this.getY() + 1);
+        if (this.isHovered()) {
+            graphics.setTooltipForNextFrame(this.doll.getHoverName(), pMouseX, pMouseY);
+        }
+    }
+}

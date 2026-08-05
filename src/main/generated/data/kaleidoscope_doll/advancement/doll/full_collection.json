@@ -251,6 +251,46 @@
       },
       "trigger": "minecraft:inventory_changed"
     },
+    "doll_326": {
+      "conditions": {
+        "items": [
+          {
+            "items": "kaleidoscope_doll:doll_326"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    },
+    "doll_327": {
+      "conditions": {
+        "items": [
+          {
+            "items": "kaleidoscope_doll:doll_327"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    },
+    "doll_328": {
+      "conditions": {
+        "items": [
+          {
+            "items": "kaleidoscope_doll:doll_328"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    },
+    "doll_329": {
+      "conditions": {
+        "items": [
+          {
+            "items": "kaleidoscope_doll:doll_329"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    },
     "doll_33": {
       "conditions": {
         "items": [
@@ -621,6 +661,26 @@
       },
       "trigger": "minecraft:inventory_changed"
     },
+    "doll_690": {
+      "conditions": {
+        "items": [
+          {
+            "items": "kaleidoscope_doll:doll_690"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    },
+    "doll_691": {
+      "conditions": {
+        "items": [
+          {
+            "items": "kaleidoscope_doll:doll_691"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    },
     "doll_7": {
       "conditions": {
         "items": [
@@ -659,7 +719,6 @@
     },
     "frame": "challenge",
     "icon": {
-      "count": 1,
       "id": "kaleidoscope_doll:doll_5"
     },
     "title": {
@@ -861,6 +920,24 @@
     ],
     [
       "doll_66"
+    ],
+    [
+      "doll_326"
+    ],
+    [
+      "doll_327"
+    ],
+    [
+      "doll_328"
+    ],
+    [
+      "doll_329"
+    ],
+    [
+      "doll_690"
+    ],
+    [
+      "doll_691"
     ]
   ],
   "rewards": {

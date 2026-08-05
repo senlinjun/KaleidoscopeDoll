@@ -117,5 +117,7 @@ runs/
 
 # Avoid ignoring Gradle wrapper jar file (.jar files are usually ignored)
 !gradle-wrapper.jar
+!libs-local/
+!libs-local/**/*.jar
 
-.cache
+**.cache

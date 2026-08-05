@@ -1,7 +1,9 @@
 package com.github.ysbbbbbb.kaleidoscopedoll.entity;
 
+import com.github.ysbbbbbb.kaleidoscopedoll.ClientHooks;
 import com.github.ysbbbbbb.kaleidoscopedoll.config.GeneralConfig;
 import com.github.ysbbbbbb.kaleidoscopedoll.init.ModEntities;
+import com.github.ysbbbbbb.kaleidoscopedoll.init.ModItems;
 import com.github.ysbbbbbb.kaleidoscopedoll.init.ModSounds;
 import com.github.ysbbbbbb.kaleidoscopedoll.item.DollEntityItem;
 import net.minecraft.core.BlockPos;
@@ -10,6 +12,8 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -25,10 +29,11 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MoverType;
+import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.monster.Phantom;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.gamerules.GameRules;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -37,21 +42,59 @@ import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
+import org.joml.Vector3fc;
 
 public class DollEntity extends Entity {
     private static final EntityDataAccessor<BlockState> DATA_BLOCK_STATE = SynchedEntityData.defineId(DollEntity.class, EntityDataSerializers.BLOCK_STATE);
-    private static final EntityDataAccessor<Vector3f> DATA_SCALE = SynchedEntityData.defineId(DollEntity.class, EntityDataSerializers.VECTOR3);
-    private static final EntityDataAccessor<Vector3f> DATA_TRANSLATION = SynchedEntityData.defineId(DollEntity.class, EntityDataSerializers.VECTOR3);
+    private static final EntityDataAccessor<Vector3fc> DATA_SCALE = SynchedEntityData.defineId(DollEntity.class, EntityDataSerializers.VECTOR3);
+    private static final EntityDataAccessor<Vector3fc> DATA_TRANSLATION = SynchedEntityData.defineId(DollEntity.class, EntityDataSerializers.VECTOR3);
+
+    private static final EntityDataAccessor<ItemStack> DATA_HOLD_ITEM = SynchedEntityData.defineId(DollEntity.class, EntityDataSerializers.ITEM_STACK);
+    private static final EntityDataAccessor<Vector3fc> DATA_ITEM_SCALE = SynchedEntityData.defineId(DollEntity.class, EntityDataSerializers.VECTOR3);
+    private static final EntityDataAccessor<Vector3fc> DATA_ITEM_TRANSLATION = SynchedEntityData.defineId(DollEntity.class, EntityDataSerializers.VECTOR3);
+    private static final EntityDataAccessor<Vector3fc> DATA_ITEM_ROTATION = SynchedEntityData.defineId(DollEntity.class, EntityDataSerializers.VECTOR3);
+
+    private static final EntityDataAccessor<String> CUSTOM_DOLL_ID = SynchedEntityData.defineId(DollEntity.class, EntityDataSerializers.STRING);
 
     public static final String TAG_BLOCK_STATE = "doll_block_state";
     private static final String TAG_SCALE = "doll_scale";
     private static final String TAG_TRANSLATION = "doll_translation";
 
+    public static final String TAG_CUSTOM_DOLL_ID = "custom_doll_id";
+
+    private static final String TAG_DROP_FROM_PHANTOM = "drop_from_phantom";
+    private static final String TAG_DROP_FROM_PHANTOM_TIME = "drop_from_phantom_time";
+
+    private static final String TAG_HOLD_ITEM = "hold_item";
+    private static final String TAG_ITEM_SCALE = "item_scale";
+    private static final String TAG_ITEM_TRANSLATION = "item_translation";
+    private static final String TAG_ITEM_ROTATION = "item_rotation";
+
     private boolean inThrowing = false;
     private long bounceTime = 0;
 
+    /**
+     * 存取物品 Cooldown
+     */
+    private long takeCooldown = 0;
+
+    /**
+     * 用来标记是否是从幻翼上掉下来的，如果玩家x分钟内没有捡起，则自然消失
+     */
+    private boolean dropFromPhantom = false;
+    /**
+     * 计时器，单位 tick
+     */
+    private int dropFromPhantomTick = 0;
+    /**
+     * 用于碰撞击退的计数器，防止无限制左脚踩右脚上天
+     */
+    private int knockbackCount = 0;
+    private int lastKnockbackTick = 0;
+
     public DollEntity(EntityType<?> entityType, Level level) {
         super(entityType, level);
+        this.refreshDimensions();
     }
 
     public DollEntity(Level level, double x, double y, double z, float yaw) {
@@ -65,12 +108,27 @@ public class DollEntity extends Entity {
         // 调用父类的基础 tick 逻辑
         super.tick();
 
+        // 先判断存活
+        // 没有骑在幻翼上时才会计数
+        if (this.dropFromPhantom && GeneralConfig.PHANTOM_DOLL_EXIST_TICKS.get() > 0
+            && !(this.getVehicle() instanceof Phantom)) {
+            this.dropFromPhantomTick++;
+            if (this.dropFromPhantomTick >= GeneralConfig.PHANTOM_DOLL_EXIST_TICKS.get()) {
+                if (this.level() instanceof ServerLevel serverLevel) {
+                    serverLevel.sendParticles(ParticleTypes.POOF, this.getRandomX(1), this.getRandomY(), this.getRandomZ(1),
+                            20, 0.2, 0.2, 0.2, 0.02);
+                }
+                this.discard();
+                return;
+            }
+        }
+
         if (this.onGround() || this.isInWater() || this.isInLava()) {
             // 如果在地面、水中或岩浆中，重置丢出状态
             this.inThrowing = false;
         } else if (this.getVehicle() == null && this.getPassengers().isEmpty() && this.getDeltaMovement().length() > 0.5) {
             // 如果没有乘坐其他实体且有足够速度，附加 360 度托马斯大回旋
-            float rotationSpeed = Mth.randomBetween(level().random, 3, 5);
+            float rotationSpeed = Mth.randomBetween(level().getRandom(), 3, 5);
             // 随机方向
             float yRotSpeed = this.getUUID().getLeastSignificantBits() % 2 == 0 ? rotationSpeed : -rotationSpeed;
             float xRotSpeed = this.getUUID().getMostSignificantBits() % 2 == 0 ? rotationSpeed : -rotationSpeed;
@@ -145,16 +203,7 @@ public class DollEntity extends Entity {
 
         // 水流推动检测
         if (GeneralConfig.DOLL_AFFECTED_BY_WATER.get()) {
-            this.hasImpulse |= this.updateInWaterStateAndDoFluidPushing();
-        }
-
-        // 服务端检查运动变化（用于网络同步）
-        if (!this.level().isClientSide) {
-            double movementDelta = this.getDeltaMovement().subtract(movement).lengthSqr();
-            if (movementDelta > 0.01D) {
-                // 标记需要同步给客户端
-                this.hasImpulse = true;
-            }
+            this.updateFluidInteraction();
         }
     }
 
@@ -166,28 +215,65 @@ public class DollEntity extends Entity {
     }
 
     @Override
-    public InteractionResult interact(Player player, InteractionHand hand) {
-        long time = this.bounceTime - System.currentTimeMillis();
-        if (time > 0) {
-            return InteractionResult.PASS;
-        }
-        this.bounceTime = System.currentTimeMillis() + 500;
-        if (player.level() instanceof ServerLevel serverLevel) {
-            RandomSource randomSource = serverLevel.getRandom();
-            float pitch = 0.75f + randomSource.nextFloat() * 0.5f;
-            this.playSound(ModSounds.DUCK_TOY, 1, pitch);
-
-            Vec3 notePos = this.position().add(
-                    randomSource.nextFloat() / 2 - 0.25,
-                    1 + randomSource.nextFloat() / 5,
-                    randomSource.nextFloat() / 2 - 0.25
-            );
-            float color = randomSource.nextInt(4) / 24.0F;
-            serverLevel.sendParticles(ParticleTypes.NOTE, notePos.x(), notePos.y(), notePos.z(), 0, color, 0, 0, 1);
-
+    public InteractionResult interact(Player player, InteractionHand hand, Vec3 hitPos) {
+        ItemStack itemStack = player.getItemInHand(hand);
+        if (itemStack.is(ModItems.TWEAKS_TOOL)) {
+            if (level().isClientSide()) {
+                ClientHooks.OPEN_TWEAKS_TOOL_SCREEN.run();
+            }
+            return InteractionResult.SUCCESS;
+        } else if (getHoldItem().isEmpty() && player.isCrouching() && !itemStack.isEmpty()) {
+            long takeCooldown = this.takeCooldown - System.currentTimeMillis();
+            if (takeCooldown > 0) {
+                return InteractionResult.PASS;
+            }
+            ItemStack split = itemStack.split(1);
+            this.setHoldItem(split);
+            this.takeCooldown = System.currentTimeMillis() + 500;
             return InteractionResult.SUCCESS;
         }
-        return InteractionResult.PASS;
+
+        if (!getHoldItem().isEmpty() && player.isCrouching() && itemStack.isEmpty()) {
+            long takeCooldown = this.takeCooldown - System.currentTimeMillis();
+            if (takeCooldown > 0) {
+                return InteractionResult.PASS;
+            }
+            player.setItemInHand(hand, getHoldItem().copy());
+            this.setHoldItem(ItemStack.EMPTY);
+            this.takeCooldown = System.currentTimeMillis() + 500;
+            return InteractionResult.SUCCESS;
+        }
+
+        if (!bounce()) {
+            return InteractionResult.PASS;
+        }
+        if (player.level() instanceof ServerLevel serverLevel) {
+            noise(serverLevel);
+        }
+        return InteractionResult.SUCCESS;
+    }
+
+    private boolean bounce() {
+        long time = this.bounceTime - System.currentTimeMillis();
+        if (time > 0) {
+            return false;
+        }
+        this.bounceTime = System.currentTimeMillis() + 500;
+        return true;
+    }
+
+    private void noise(ServerLevel serverLevel) {
+        RandomSource randomSource = serverLevel.getRandom();
+        float pitch = 0.75f + randomSource.nextFloat() * 0.5f;
+        this.playSound(ModSounds.DUCK_TOY, 1, pitch);
+
+        Vec3 notePos = this.position().add(
+                randomSource.nextFloat() / 2 - 0.25,
+                1 + randomSource.nextFloat() / 5,
+                randomSource.nextFloat() / 2 - 0.25
+        );
+        float color = randomSource.nextInt(4) / 24.0F;
+        serverLevel.sendParticles(ParticleTypes.NOTE, notePos.x(), notePos.y(), notePos.z(), 0, color, 0, 0, 1);
     }
 
     @Override
@@ -206,23 +292,31 @@ public class DollEntity extends Entity {
     }
 
     @Override
-    public boolean hurt(DamageSource source, float amount) {
-        if (this.isInvulnerableTo(source)) {
-            return false;
-        } else {
-            // 必须是玩家直接造成的伤害才能打掉
-            if (!this.isRemoved() && !this.level().isClientSide && source.getDirectEntity() instanceof Player) {
-                this.kill();
-                this.markHurt();
-                this.dropItem(source.getEntity());
-                return true;
-            }
+    public boolean hurtServer(ServerLevel level, DamageSource source, float amount) {
+        if (this.isInvulnerableToBase(source)) {
             return false;
         }
+        // 必须是玩家直接造成的伤害才能打掉
+        if (!this.isRemoved() && source.getDirectEntity() instanceof Player) {
+            this.kill(level);
+            this.markHurt();
+            this.dropItem(level, source.getEntity());
+            return true;
+        }
+        // 否则仅弹一下，并发出声音
+        if (!bounce()) {
+            return false;
+        }
+        noise(level);
+        return false;
     }
 
-    private void dropItem(@Nullable Entity pBrokenEntity) {
-        if (this.level().getGameRules().getBoolean(GameRules.RULE_DOENTITYDROPS)) {
+    private void dropItem(ServerLevel level, @Nullable Entity pBrokenEntity) {
+        if (!getHoldItem().isEmpty()) {
+            this.spawnAtLocation(level, getHoldItem().copy());
+            setHoldItem(ItemStack.EMPTY);
+        }
+        if (level.getGameRules().get(GameRules.ENTITY_DROPS)) {
             this.playSound(SoundEvents.WOOL_BREAK, 1.0F, 1.0F);
             if (pBrokenEntity instanceof Player player) {
                 if (player.getAbilities().instabuild) {
@@ -230,12 +324,12 @@ public class DollEntity extends Entity {
                 }
             }
             ItemStack dollItem = DollEntityItem.createItemWithEntity(this);
-            this.spawnAtLocation(dollItem);
+            this.spawnAtLocation(level, dollItem);
         }
     }
 
     @Override
-    public boolean canBeCollidedWith() {
+    public boolean canBeCollidedWith(Entity other) {
         return true;
     }
 
@@ -271,42 +365,77 @@ public class DollEntity extends Entity {
         builder.define(DATA_BLOCK_STATE, Blocks.AIR.defaultBlockState());
         builder.define(DATA_SCALE, new Vector3f(1.0f));
         builder.define(DATA_TRANSLATION, new Vector3f());
+        builder.define(CUSTOM_DOLL_ID, "");
+        builder.define(DATA_HOLD_ITEM, ItemStack.EMPTY);
+        builder.define(DATA_ITEM_SCALE, new Vector3f(1.0f));
+        builder.define(DATA_ITEM_TRANSLATION, new Vector3f());
+        builder.define(DATA_ITEM_ROTATION, new Vector3f());
     }
 
     @Override
-    public void readAdditionalSaveData(CompoundTag tag) {
-        if (tag.contains(TAG_BLOCK_STATE)) {
-            HolderLookup<Block> lookup = this.level().holderLookup(Registries.BLOCK);
-            setDisplayBlockState(NbtUtils.readBlockState(lookup, tag.getCompound(TAG_BLOCK_STATE)));
+    public void onSyncedDataUpdated(EntityDataAccessor<?> pKey) {
+        if (DATA_SCALE.equals(pKey) || DATA_ITEM_SCALE.equals(pKey)) {
+            this.refreshDimensions();
         }
-        if (tag.contains(TAG_SCALE)) {
-            setDisplayScale(readVector3f(tag.getCompound(TAG_SCALE)));
-        }
-        if (tag.contains(TAG_TRANSLATION)) {
-            setDisplayTranslation(readVector3f(tag.getCompound(TAG_TRANSLATION)));
-        }
+        super.onSyncedDataUpdated(pKey);
     }
 
     @Override
-    public void addAdditionalSaveData(CompoundTag tag) {
+    protected void readAdditionalSaveData(ValueInput input) {
+        input.read(TAG_BLOCK_STATE, BlockState.CODEC).ifPresent(this::setDisplayBlockState);
+        input.child(TAG_SCALE).ifPresent(child -> setDisplayScale(readVector3f(child)));
+        input.child(TAG_TRANSLATION).ifPresent(child -> setDisplayTranslation(readVector3f(child)));
+
+        String customId = input.getStringOr(TAG_CUSTOM_DOLL_ID, "");
+        if (!customId.isEmpty()) {
+            setCustomDollId(customId);
+        }
+
+        this.dropFromPhantom = input.getBooleanOr(TAG_DROP_FROM_PHANTOM, false);
+        this.dropFromPhantomTick = input.getIntOr(TAG_DROP_FROM_PHANTOM_TIME, 0);
+
+        input.read(TAG_HOLD_ITEM, ItemStack.OPTIONAL_CODEC).ifPresent(this::setHoldItem);
+        input.child(TAG_ITEM_SCALE).ifPresent(child -> setItemScale(readVector3f(child)));
+        input.child(TAG_ITEM_TRANSLATION).ifPresent(child -> setItemTranslation(readVector3f(child)));
+        input.child(TAG_ITEM_ROTATION).ifPresent(child -> setItemRotation(readVector3f(child)));
+    }
+
+    @Override
+    protected void addAdditionalSaveData(ValueOutput output) {
         BlockState blockState = getDisplayBlockState();
         if (blockState != Blocks.AIR.defaultBlockState()) {
-            tag.put(TAG_BLOCK_STATE, NbtUtils.writeBlockState(blockState));
+            output.store(TAG_BLOCK_STATE, BlockState.CODEC, blockState);
         }
-        tag.put(TAG_SCALE, writeVector3f(getDisplayScale()));
-        tag.put(TAG_TRANSLATION, writeVector3f(getDisplayTranslation()));
+        writeVector3f(output, TAG_SCALE, getDisplayScale());
+        writeVector3f(output, TAG_TRANSLATION, getDisplayTranslation());
+
+        if (!getCustomDollId().isEmpty()) {
+            output.putString(TAG_CUSTOM_DOLL_ID, getCustomDollId());
+        }
+
+        output.putBoolean(TAG_DROP_FROM_PHANTOM, this.dropFromPhantom);
+        output.putInt(TAG_DROP_FROM_PHANTOM_TIME, this.dropFromPhantomTick);
+
+        output.store(TAG_HOLD_ITEM, ItemStack.OPTIONAL_CODEC, getHoldItem());
+        writeVector3f(output, TAG_ITEM_SCALE, getItemScale());
+        writeVector3f(output, TAG_ITEM_TRANSLATION, getItemTranslation());
+        writeVector3f(output, TAG_ITEM_ROTATION, getItemRotation());
     }
 
-    private Vector3f readVector3f(CompoundTag tag) {
-        return new Vector3f(tag.getFloat("x"), tag.getFloat("y"), tag.getFloat("z"));
+    public void removePhantomRecord(CompoundTag tag) {
+        tag.remove(TAG_DROP_FROM_PHANTOM);
+        tag.remove(TAG_DROP_FROM_PHANTOM_TIME);
     }
 
-    private CompoundTag writeVector3f(Vector3f vector) {
-        CompoundTag tag = new CompoundTag();
-        tag.putFloat("x", vector.x);
-        tag.putFloat("y", vector.y);
-        tag.putFloat("z", vector.z);
-        return tag;
+    private Vector3f readVector3f(ValueInput input) {
+        return new Vector3f(input.getFloatOr("x", 0), input.getFloatOr("y", 0), input.getFloatOr("z", 0));
+    }
+
+    private void writeVector3f(ValueOutput output, String key, Vector3fc vector) {
+        ValueOutput child = output.child(key);
+        child.putFloat("x", vector.x());
+        child.putFloat("y", vector.y());
+        child.putFloat("z", vector.z());
     }
 
     public BlockState getDisplayBlockState() {
@@ -317,20 +446,73 @@ public class DollEntity extends Entity {
         this.entityData.set(DATA_BLOCK_STATE, blockState);
     }
 
-    public Vector3f getDisplayScale() {
+    public Vector3fc getDisplayScale() {
         return this.entityData.get(DATA_SCALE);
     }
 
     public void setDisplayScale(Vector3f scale) {
-        this.entityData.set(DATA_SCALE, scale);
+        this.entityData.set(DATA_SCALE, scale, true);
     }
 
-    public Vector3f getDisplayTranslation() {
+    public Vector3fc getDisplayTranslation() {
         return this.entityData.get(DATA_TRANSLATION);
     }
 
     public void setDisplayTranslation(Vector3f translation) {
-        this.entityData.set(DATA_TRANSLATION, translation);
+        this.entityData.set(DATA_TRANSLATION, translation, true);
+    }
+
+    public ItemStack getHoldItem() {
+        return this.entityData.get(DATA_HOLD_ITEM);
+    }
+
+    public void setHoldItem(ItemStack holdItem) {
+        this.entityData.set(DATA_HOLD_ITEM, holdItem.copy());
+    }
+
+    public Vector3fc getItemScale() {
+        return this.entityData.get(DATA_ITEM_SCALE);
+    }
+
+    public void setItemScale(Vector3f scale) {
+        this.entityData.set(DATA_ITEM_SCALE, scale, true);
+    }
+
+    public Vector3fc getItemTranslation() {
+        return this.entityData.get(DATA_ITEM_TRANSLATION);
+    }
+
+    public void setItemTranslation(Vector3f translation) {
+        this.entityData.set(DATA_ITEM_TRANSLATION, translation, true);
+    }
+
+    public Vector3fc getItemRotation() {
+        return this.entityData.get(DATA_ITEM_ROTATION);
+    }
+
+    public void setItemRotation(Vector3f rotations) {
+        this.entityData.set(DATA_ITEM_ROTATION, rotations, true);
+    }
+
+    public void setCustomDollId(String customDollId) {
+        this.entityData.set(CUSTOM_DOLL_ID, customDollId);
+    }
+
+    public String getCustomDollId() {
+        return this.entityData.get(CUSTOM_DOLL_ID);
+    }
+
+    public void setDropFromPhantom(boolean dropFromPhantom) {
+        this.dropFromPhantom = dropFromPhantom;
+    }
+
+    @Override
+    public EntityDimensions getDimensions(Pose pose) {
+        Vector3fc displayScale = this.getDisplayScale();
+        EntityDimensions dimensions = super.getDimensions(pose);
+        float width = Math.max(Math.abs(displayScale.x()), Math.abs(displayScale.z()));
+        float height = Math.abs(displayScale.y());
+        return dimensions.scale(width, height);
     }
 
     public void setInThrowing(boolean inThrowing) {
@@ -343,7 +525,7 @@ public class DollEntity extends Entity {
 
     private void checkCollisionKnockback() {
         // 仅在服务器端进行击退处理
-        if (this.level().isClientSide) {
+        if (this.level().isClientSide()) {
             return;
         }
 
@@ -356,13 +538,28 @@ public class DollEntity extends Entity {
             return;
         }
 
+        // 每次击退后增加计数器，最多允许击退 5 次，之后需要玩偶停下来重置
+        if (this.knockbackCount >= 5) {
+            // 记录最后的碰撞 tick，用来重置计数器
+            if (this.tickCount - this.lastKnockbackTick > 20) {
+                this.knockbackCount = 0;
+            }
+            this.lastKnockbackTick = this.tickCount;
+            return;
+        }
+
         // 检查与玩偶碰撞的实体
-        for (Entity entity : this.level().getEntities(this, this.getBoundingBox().inflate(0.2), e -> e != this && e.isAlive() && e.isPickable())) {
+        for (Entity entity : this.level().getEntities(this, this.getBoundingBox().inflate(0.2),
+                e -> e != this && e.isAlive() && e.isPickable())) {
             // 计算从玩偶到目标实体的方向向量
             Vec3 knockbackDirection = this.getDeltaMovement().normalize();
 
-            // 击退强度基于玩偶的速度
-            double knockbackStrength = Math.min(dollSpeed * 0.4, 1) * GeneralConfig.DOLL_KNOCKBACK_FORCE.get();
+            // 击退强度基于玩偶的速度和玩偶的大小
+            // 玩偶越大击退效果越差
+            double sizeNumber = 0.75 / Math.max(this.getBbWidth(), this.getBbHeight());
+            double knockbackStrength = Math.min(dollSpeed * 0.4, 1)
+                                       * Math.min(sizeNumber * sizeNumber, 1)
+                                       * GeneralConfig.DOLL_KNOCKBACK_FORCE.get();
 
             // 计算击退向量，保持一定的垂直分量
             Vec3 knockbackVector = new Vec3(
@@ -372,8 +569,14 @@ public class DollEntity extends Entity {
             );
 
             // 应用击退效果
-            entity.setDeltaMovement(entity.getDeltaMovement().add(knockbackVector));
-            entity.hasImpulse = true;
+            Vec3 speed = entity.getDeltaMovement().add(knockbackVector);
+            // 限制最大速度，防止过快，我们依据玩偶大小做最大速度限制
+            double maxSpeed = Math.min(sizeNumber * sizeNumber, 1);
+            if (speed.length() > maxSpeed) {
+                speed = speed.normalize().scale(maxSpeed);
+            }
+
+            entity.setDeltaMovement(speed);
 
             // 生成击中粒子效果
             if (this.level() instanceof ServerLevel serverLevel) {
@@ -381,6 +584,7 @@ public class DollEntity extends Entity {
                         entity.getX(), entity.getY() + entity.getBbHeight() * 0.5, entity.getZ(),
                         5, 0.2, 0.2, 0.2, 0.1);
             }
+            this.knockbackCount++;
         }
     }
 }

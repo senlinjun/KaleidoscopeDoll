@@ -1,12 +1,15 @@
 plugins {
     id 'eclipse'
     id 'idea'
-    id 'fabric-loom' version '1.7-SNAPSHOT'
+    id 'net.fabricmc.fabric-loom' version '1.17.17'
 }
 
 version = project.mod_version
 group = project.maven_group
-archivesBaseName = "kaleidoscopedoll-${minecraft_version}-fabric"
+
+base {
+    archivesName = "kaleidoscopedoll-${minecraft_version}-fabric"
+}
 
 loom {
     splitEnvironmentSourceSets()
@@ -14,6 +17,12 @@ loom {
         "kaleidoscopedoll" {
             sourceSet sourceSets.main
             sourceSet sourceSets.client
+        }
+    }
+    runs {
+        configureEach {
+            client()
+            jvmArguments.add("-Dkaleidoscope.sourceRoot=${project.projectDir}")
         }
     }
 }
@@ -35,14 +44,12 @@ repositories {
         }
     }
     maven {
-        name = 'ParchmentMC'
-        url = 'https://maven.parchmentmc.org'
-    }
-    maven {
-        // location of the maven that hosts JEI files since January 2023
-        // Patchouli
         name = "Jared's maven"
         url = "https://maven.blamejared.com/"
+    }
+    maven {
+        name = 'Local libs'
+        url = uri('libs-local')
     }
     maven {
         // location of a maven mirror for JEI files, as a fallback
@@ -53,18 +60,28 @@ repositories {
 
 dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
-    mappings loom.layered() {
-        officialMojangMappings()
-        parchment("org.parchmentmc.data:parchment-1.21:${project.parchment_version}@zip")
-    }
-    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-    include(modImplementation("maven.modrinth:forge-config-api-port:${project.forge_config_api_port_version}"))
-    modImplementation "mezz.jei:jei-${project.minecraft_version}-fabric:${project.jei_version}"
+    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+    implementation "com.github.ysbbbbbb:forge-config-api-port-fabric:26.2.1"
+    implementation "mezz.jei:jei-${project.minecraft_version}-fabric:${project.jei_version}"
+    implementation "maven.modrinth:jade:${project.jade_version}"
+    compileOnly "maven.modrinth:trinkets-updated:4.1.0-beta.3+26.2"
 
-    compileOnlyApi "com.electronwill.night-config:core:${project.night_config_version}"
+    compileOnly "com.electronwill.night-config:core:${project.night_config_version}"
     localRuntime "com.electronwill.night-config:core:${project.night_config_version}"
     localRuntime "com.electronwill.night-config:toml:${project.night_config_version}"
+}
+
+configurations {
+    shadeFcap
+}
+
+dependencies {
+    shadeFcap "com.github.ysbbbbbb:forge-config-api-port-fabric:26.2.1"
+}
+
+loom {
+    nestJars(tasks.named('jar', Jar.class), configurations.named('shadeFcap'))
 }
 
 processResources {
@@ -80,7 +97,7 @@ processResources {
     }
 }
 
-def targetJavaVersion = 17
+def targetJavaVersion = 25
 tasks.withType(JavaCompile).configureEach {
     it.options.encoding = "UTF-8"
     if (targetJavaVersion >= 10 || JavaVersion.current().isJava10Compatible()) {

@@ -7,10 +7,10 @@ import mezz.jei.api.constants.RecipeTypes;
 import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.registration.IRecipeRegistration;
 import mezz.jei.api.registration.ISubtypeRegistration;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 public class ModJEIPlugins implements IModPlugin {
-    private static final ResourceLocation UID = ResourceLocation.fromNamespaceAndPath(KaleidoscopeDoll.MOD_ID, "jei");
+    private static final Identifier UID = Identifier.fromNamespaceAndPath(KaleidoscopeDoll.MOD_ID, "jei");
 
     @Override
     public void registerItemSubtypes(ISubtypeRegistration registration) {
@@ -23,7 +23,7 @@ public class ModJEIPlugins implements IModPlugin {
     }
 
     @Override
-    public ResourceLocation getPluginUid() {
+    public Identifier getPluginUid() {
         return UID;
     }
 }

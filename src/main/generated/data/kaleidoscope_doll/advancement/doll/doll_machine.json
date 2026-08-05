@@ -19,7 +19,6 @@
       "translate": "advancements.kaleidoscope_doll.doll.doll_machine.description"
     },
     "icon": {
-      "count": 1,
       "id": "kaleidoscope_doll:doll_machine"
     },
     "show_toast": false,

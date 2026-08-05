@@ -1,0 +1,12 @@
+{
+  "priority": -1000,
+  "target": ["#kaleidoscope_doll:wearable_dolls"],
+  "render": [
+    {
+      "type": "item",
+      "model_part": "head",
+      "display_context": "head",
+      "offset": [0, 0, 0]
+    }
+  ]
+}
