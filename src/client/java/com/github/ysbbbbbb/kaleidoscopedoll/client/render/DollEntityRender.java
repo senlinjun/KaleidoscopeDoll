@@ -14,7 +14,6 @@ import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.client.renderer.item.ItemModelResolver;
-import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -47,7 +46,7 @@ public class DollEntityRender extends EntityRenderer<DollEntity, DollEntityRende
         super.extractRenderState(dollEntity, state, partialTick);
         state.displayBlockState = dollEntity.getDisplayBlockState();
         state.customDollId = dollEntity.getCustomDollId();
-        state.holdItem = dollEntity.getHoldItem().copy();
+        this.itemModelResolver.updateForNonLiving(state.holdItemRenderState, dollEntity.getHoldItem(), ItemDisplayContext.GROUND, dollEntity);
         state.displayScale = dollEntity.getDisplayScale();
         state.displayTranslation = dollEntity.getDisplayTranslation();
         state.itemScale = dollEntity.getItemScale();
@@ -76,7 +75,7 @@ public class DollEntityRender extends EntityRenderer<DollEntity, DollEntityRende
     @Override
     public void submit(DollEntityRenderState state, PoseStack poseStack, SubmitNodeCollector collector, CameraRenderState cameraRenderState) {
         boolean hasBody = !state.customDollId.isEmpty() || (state.displayBlockState != null && !state.displayBlockState.isAir());
-        boolean hasHoldItem = !state.holdItem.isEmpty();
+        boolean hasHoldItem = !state.holdItemRenderState.isEmpty();
 
         if (!hasBody && !hasHoldItem) {
             return;
@@ -130,7 +129,7 @@ public class DollEntityRender extends EntityRenderer<DollEntity, DollEntityRende
     }
 
     private void renderHoldItem(DollEntityRenderState state, PoseStack poseStack, SubmitNodeCollector collector) {
-        if (state.holdItem.isEmpty()) {
+        if (state.holdItemRenderState.isEmpty()) {
             return;
         }
 
@@ -147,9 +146,7 @@ public class DollEntityRender extends EntityRenderer<DollEntity, DollEntityRende
         poseStack.mulPose(Axis.YP.rotationDegrees(itemRotation.y()));
         poseStack.mulPose(Axis.ZP.rotationDegrees(itemRotation.z()));
 
-        ItemStackRenderState itemRenderState = new ItemStackRenderState();
-        this.itemModelResolver.updateForNonLiving(itemRenderState, state.holdItem, ItemDisplayContext.GROUND, null);
-        itemRenderState.submit(poseStack, collector, 0xF000F0, OverlayTexture.NO_OVERLAY, 0);
+        state.holdItemRenderState.submit(poseStack, collector, 0xF000F0, OverlayTexture.NO_OVERLAY, 0);
 
         poseStack.popPose();
     }
