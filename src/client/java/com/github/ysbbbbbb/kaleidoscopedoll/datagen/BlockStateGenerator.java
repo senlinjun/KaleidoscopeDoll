@@ -61,8 +61,12 @@ public class BlockStateGenerator extends FabricModelProvider {
     public void generateItemModels(ItemModelGenerators generator) {
         ModRegisterEvent.DOLL_ITEMS.forEach(item -> {
             Identifier key = BuiltInRegistries.ITEM.getKey(item);
+            String modelPath = "block/doll/" + key.getPath();
+            if (key.getPath().equals("doll_271")) {
+                modelPath = "block/rot_doll/doll_271/rot_0";
+            }
             generator.itemModelOutput.accept(item, new CuboidItemModelWrapper.Unbaked(
-                    modLoc("block/doll/" + key.getPath()), Optional.empty(), List.of()));
+                    modLoc(modelPath), Optional.empty(), List.of()));
         });
 
         generator.itemModelOutput.accept(ModItems.COMPUTER, new CuboidItemModelWrapper.Unbaked(
