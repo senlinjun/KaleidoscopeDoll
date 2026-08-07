@@ -3,6 +3,8 @@ package com.github.ysbbbbbb.kaleidoscopedoll.datagen;
 import com.github.ysbbbbbb.kaleidoscopedoll.KaleidoscopeDoll;
 import com.github.ysbbbbbb.kaleidoscopedoll.event.ModRegisterEvent;
 import com.github.ysbbbbbb.kaleidoscopedoll.init.ModBlocks;
+import com.github.ysbbbbbb.kaleidoscopedoll.client.render.DollEntityItemModel;
+import com.github.ysbbbbbb.kaleidoscopedoll.client.render.DollSpecialModelRenderer;
 import com.github.ysbbbbbb.kaleidoscopedoll.init.ModItems;
 import net.fabricmc.fabric.api.client.datagen.v1.provider.FabricModelProvider;
 import net.fabricmc.fabric.api.datagen.v1.FabricPackOutput;
@@ -14,6 +16,7 @@ import net.minecraft.client.data.models.blockstates.PropertyDispatch;
 import net.minecraft.client.renderer.block.dispatch.Variant;
 import net.minecraft.client.renderer.block.dispatch.VariantMutator;
 import net.minecraft.client.renderer.item.CuboidItemModelWrapper;
+import net.minecraft.client.renderer.item.SpecialModelWrapper;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.random.WeightedList;
@@ -33,7 +36,7 @@ public class BlockStateGenerator extends FabricModelProvider {
             Identifier key = BuiltInRegistries.BLOCK.getKey(block);
             PropertyDispatch<VariantMutator> dispatch = PropertyDispatch.modify(BlockStateProperties.ROTATION_16)
                     .generate(rotation -> VariantMutator.MODEL.withValue(
-                            modLoc("rot_doll/" + key.getPath() + "/rot_" + rotation)));
+                            modLoc("block/rot_doll/" + key.getPath() + "/rot_" + rotation)));
             generator.blockStateOutput.accept(MultiVariantGenerator.dispatch(block,
                     new MultiVariant(WeightedList.of(new Variant(modLoc("block/doll/" + key.getPath())))))
                     .with(dispatch));
@@ -64,6 +67,27 @@ public class BlockStateGenerator extends FabricModelProvider {
 
         generator.itemModelOutput.accept(ModItems.COMPUTER, new CuboidItemModelWrapper.Unbaked(
                 modLoc("block/computer"), Optional.empty(), List.of()));
+
+        generator.itemModelOutput.accept(ModItems.DOLL_MACHINE, new CuboidItemModelWrapper.Unbaked(
+                modLoc("item/doll_machine"), Optional.empty(), List.of()));
+
+        generator.itemModelOutput.accept(ModItems.TWEAKS_TOOL, new CuboidItemModelWrapper.Unbaked(
+                modLoc("item/tweaks_tool"), Optional.empty(), List.of()));
+
+        generator.itemModelOutput.accept(ModItems.PURPLE_DOLL_GIFT_BOX, new CuboidItemModelWrapper.Unbaked(
+                modLoc("item/purple_doll_gift_box"), Optional.empty(), List.of()));
+
+        generator.itemModelOutput.accept(ModItems.GREEN_DOLL_GIFT_BOX, new CuboidItemModelWrapper.Unbaked(
+                modLoc("item/green_doll_gift_box"), Optional.empty(), List.of()));
+
+        generator.itemModelOutput.accept(ModItems.YELLOW_DOLL_GIFT_BOX, new CuboidItemModelWrapper.Unbaked(
+                modLoc("item/yellow_doll_gift_box"), Optional.empty(), List.of()));
+
+        generator.itemModelOutput.accept(ModItems.DOLL_ENTITY_ITEM, new DollEntityItemModel.Unbaked());
+
+        generator.itemModelOutput.accept(ModItems.CUSTOM_DOLL, new SpecialModelWrapper.Unbaked(
+                Identifier.withDefaultNamespace("item/generated"), Optional.empty(),
+                new DollSpecialModelRenderer.Unbaked()));
     }
 
     private Identifier modLoc(String path) {

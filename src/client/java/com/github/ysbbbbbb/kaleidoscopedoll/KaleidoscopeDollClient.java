@@ -5,6 +5,7 @@ import com.github.ysbbbbbb.kaleidoscopedoll.client.custom.CustomDollLoader;
 import com.github.ysbbbbbb.kaleidoscopedoll.client.gui.ComputerMenuScreen;
 import com.github.ysbbbbbb.kaleidoscopedoll.client.gui.TweaksToolScreen;
 import com.github.ysbbbbbb.kaleidoscopedoll.client.render.CustomDollRender;
+import com.github.ysbbbbbb.kaleidoscopedoll.client.render.DollItemModels;
 import com.github.ysbbbbbb.kaleidoscopedoll.client.render.DollEntityRender;
 import com.github.ysbbbbbb.kaleidoscopedoll.client.resources.CustomDollReloadListener;
 import com.github.ysbbbbbb.kaleidoscopedoll.init.ModBlocks;
@@ -28,6 +29,8 @@ import java.util.List;
 public class KaleidoscopeDollClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
+        DollItemModels.register();
+
         EntityRendererRegistry.register(ModEntities.DOLL, DollEntityRender::new);
         BlockEntityRendererRegistry.register(ModBlocks.CUSTOM_DOLL_BE, CustomDollRender::new);
 

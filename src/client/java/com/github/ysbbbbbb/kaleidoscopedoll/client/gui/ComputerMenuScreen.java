@@ -1,13 +1,9 @@
 package com.github.ysbbbbbb.kaleidoscopedoll.client.gui;
 
 import com.github.ysbbbbbb.kaleidoscopedoll.KaleidoscopeDoll;
-import com.github.ysbbbbbb.kaleidoscopedoll.client.custom.CustomDollLoader;
 import com.github.ysbbbbbb.kaleidoscopedoll.config.GeneralConfig;
-import com.github.ysbbbbbb.kaleidoscopedoll.data.custom.ServerCustomDollLoader;
 import com.github.ysbbbbbb.kaleidoscopedoll.datagen.TagItem;
-import com.github.ysbbbbbb.kaleidoscopedoll.init.ModItems;
 import com.github.ysbbbbbb.kaleidoscopedoll.inventory.ComputerMenu;
-import com.github.ysbbbbbb.kaleidoscopedoll.item.CustomDollItem;
 import com.github.ysbbbbbb.kaleidoscopedoll.client.ClientNetworkHandler;
 import com.github.ysbbbbbb.kaleidoscopedoll.network.message.ComputerDollClickMessage;
 import com.google.common.collect.Lists;
@@ -18,6 +14,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -85,14 +82,8 @@ public class ComputerMenuScreen extends AbstractContainerScreen<ComputerMenu> {
     }
 
     private void getDolls() {
-        // 自定义玩偶
-        ServerCustomDollLoader.getModels().forEach(id -> {
-            ItemStack stack = ModItems.CUSTOM_DOLL.getDefaultInstance();
-            CustomDollItem.setModelId(stack, id);
-            this.dolls.add(stack);
-        });
-
-        BuiltInRegistries.ITEM.getTagOrEmpty(TagItem.PLAYER_DOLLS).forEach(holder -> {
+        // 电脑只能检索捐赠者玩偶
+        BuiltInRegistries.ITEM.getTagOrEmpty(TagItem.SPONSORED_DOLLS).forEach(holder -> {
             ItemStack stack = holder.value().getDefaultInstance();
             if (filterSponsoredDoll(stack)) {
                 this.dolls.add(stack);
@@ -108,16 +99,8 @@ public class ComputerMenuScreen extends AbstractContainerScreen<ComputerMenu> {
     }
 
     private void getSearchDolls(String searchText) {
-        // 自定义玩偶
-        ServerCustomDollLoader.getModels().forEach(id -> {
-            if (doSearchCustom(id, searchText)) {
-                ItemStack stack = ModItems.CUSTOM_DOLL.getDefaultInstance();
-                CustomDollItem.setModelId(stack, id);
-                this.dolls.add(stack);
-            }
-        });
-
-        BuiltInRegistries.ITEM.getTagOrEmpty(TagItem.PLAYER_DOLLS).forEach(holder -> {
+        // 电脑只能检索捐赠者玩偶
+        BuiltInRegistries.ITEM.getTagOrEmpty(TagItem.SPONSORED_DOLLS).forEach(holder -> {
             Item item = holder.value();
             if (doSearch(item, searchText) && filterSponsoredDoll(item.getDefaultInstance())) {
                 this.dolls.add(item.getDefaultInstance());
@@ -142,28 +125,6 @@ public class ComputerMenuScreen extends AbstractContainerScreen<ComputerMenu> {
         return I18n.get("tooltip.kaleidoscope_doll.doll." + key).contains(searchText);
     }
 
-    private boolean doSearchCustom(String id, String searchText) {
-        // 可以直接搜索物品 id 或者文本描述
-        if (id.contains(searchText)) {
-            return true;
-        }
-
-        String local = Minecraft.getInstance().getLanguageManager().getSelected();
-        String language = CustomDollLoader.getLanguage(local, id);
-        // 语言文件搜索
-        if (language.contains(searchText)) {
-            return true;
-        }
-
-        // 回退搜索英文
-        if (!"en_us".equals(local)) {
-            language = CustomDollLoader.getLanguage("en_us", id);
-            return language.contains(searchText);
-        }
-
-        return false;
-    }
-
     private void initSearch() {
         String perText = "";
         boolean focus = false;
@@ -175,7 +136,7 @@ public class ComputerMenuScreen extends AbstractContainerScreen<ComputerMenu> {
         searchField.setValue(perText);
         searchField.setBordered(false);
         searchField.setMaxLength(32);
-        searchField.setTextColor(0x39ff56);
+        searchField.setTextColor(0xFF39FF56);
         searchField.setFocused(focus);
         searchField.moveCursorToEnd(false);
         this.addWidget(this.searchField);
@@ -184,27 +145,23 @@ public class ComputerMenuScreen extends AbstractContainerScreen<ComputerMenu> {
     @Override
     protected void extractLabels(GuiGraphicsExtractor graphics, int x, int y) {
         graphics.text(this.font, Component.translatable("block.kaleidoscope_doll.computer"),
-                this.titleLabelX, this.titleLabelY, 0x404040);
+                this.titleLabelX, this.titleLabelY, 0xFF404040);
     }
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int x, int y, float partialTicks) {
         super.extractRenderState(graphics, x, y, partialTicks);
 
-        int posX = this.leftPos;
-        int posY = (this.height - this.imageHeight) / 2;
-        graphics.blit(BG, posX, posY, this.imageWidth, this.imageHeight, 0, 0, this.imageWidth, this.imageHeight);
-
         int uOffset = this.isScrollBarActive() ? 0 : 14;
         int offset = (int) (57 * this.scrollOffs);
-        graphics.blit(BG, this.leftPos + 155, this.topPos + 17 + offset,
-                12, 15, 177 + uOffset, 0, 12, 15);
+        graphics.blit(RenderPipelines.GUI_TEXTURED, BG, this.leftPos + 155, this.topPos + 17 + offset,
+                177.0F + uOffset, 0.0F, 12, 15, 256, 256);
 
         this.searchField.extractWidgetRenderState(graphics, x, y, partialTicks);
         if (!this.searchField.isFocused() && this.searchField.getValue().isEmpty()) {
             graphics.text(font, Component.translatable("gui.kaleidoscope_doll.computer.search")
                             .withStyle(ChatFormatting.GRAY),
-                    this.leftPos + 9, this.topPos + 102, 0xFFFFFF);
+                    this.leftPos + 9, this.topPos + 102, 0xFFFFFFFF);
         }
 
         if (this.isHovering(108, 98, 16, 16, x, y)
@@ -213,6 +170,13 @@ public class ComputerMenuScreen extends AbstractContainerScreen<ComputerMenu> {
         }
 
         this.extractTooltip(graphics, x, y);
+    }
+
+    @Override
+    public void extractBackground(GuiGraphicsExtractor graphics, int x, int y, float partialTicks) {
+        super.extractBackground(graphics, x, y, partialTicks);
+        graphics.blit(RenderPipelines.GUI_TEXTURED, BG, this.leftPos, this.topPos,
+                0.0F, 0.0F, this.imageWidth, this.imageHeight, 256, 256);
     }
 
     @Override

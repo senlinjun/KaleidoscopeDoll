@@ -4,6 +4,9 @@ import com.github.ysbbbbbb.kaleidoscopedoll.KaleidoscopeDoll;
 import com.github.ysbbbbbb.kaleidoscopedoll.client.bedrock.BedrockModel;
 import com.github.ysbbbbbb.kaleidoscopedoll.client.custom.CustomDollLoader;
 import com.github.ysbbbbbb.kaleidoscopedoll.client.custom.CustomDollResourceLoader;
+import com.mojang.blaze3d.platform.NativeImage;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
@@ -39,6 +42,15 @@ public class CustomDollReloadListener implements ResourceManagerReloadListener, 
                 DFAULT_DOLL_MODEL = new BedrockModel(stream);
             } catch (Exception e) {
                 KaleidoscopeDoll.LOGGER.error("Failed to load default custom doll model", e);
+            }
+        });
+        manager.getResource(DEFAULT_TEXTURE_ID).ifPresent(res -> {
+            try (InputStream stream = res.open()) {
+                NativeImage image = NativeImage.read(stream);
+                DynamicTexture texture = new DynamicTexture(() -> "kaleidoscope_doll_default", image);
+                Minecraft.getInstance().getTextureManager().register(DEFAULT_TEXTURE_ID, texture);
+            } catch (Exception e) {
+                KaleidoscopeDoll.LOGGER.error("Failed to load default custom doll texture", e);
             }
         });
     }

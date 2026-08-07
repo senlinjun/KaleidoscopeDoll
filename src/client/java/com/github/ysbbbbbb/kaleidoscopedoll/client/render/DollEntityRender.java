@@ -13,9 +13,14 @@ import net.minecraft.client.renderer.block.model.BlockDisplayContext;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
+import net.minecraft.client.renderer.item.ItemModelResolver;
+import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
+import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
@@ -24,10 +29,12 @@ import org.joml.Vector3fc;
 
 public class DollEntityRender extends EntityRenderer<DollEntity, DollEntityRenderState> {
     private final BlockModelResolver blockModelResolver;
+    private final ItemModelResolver itemModelResolver;
 
     public DollEntityRender(EntityRendererProvider.Context context) {
         super(context);
         this.blockModelResolver = context.getBlockModelResolver();
+        this.itemModelResolver = context.getItemModelResolver();
     }
 
     @Override
@@ -49,11 +56,19 @@ public class DollEntityRender extends EntityRenderer<DollEntity, DollEntityRende
         state.bounceTime = dollEntity.getBounceTime();
 
         Entity vehicle = dollEntity.getVehicle();
+        float yaw;
         if (vehicle != null) {
-            float vehicleYaw = Mth.lerp(partialTick, vehicle.yRotO, vehicle.getYRot());
-            state.yRot = -vehicleYaw;
+            yaw = Mth.lerp(partialTick, vehicle.yRotO, vehicle.getYRot());
         } else {
-            state.yRot = -Mth.lerp(partialTick, dollEntity.yRotO, dollEntity.getYRot());
+            yaw = Mth.lerp(partialTick, dollEntity.yRotO, dollEntity.getYRot());
+        }
+        if (dollEntity.getCustomDollId().isEmpty()) {
+            // 普通方块玩偶：渲染烘焙方块模型，其正面朝 -Z（原版实体约定），使用 180 - yaw。
+            state.yRot = 180.0F - yaw;
+        } else {
+            // 自定义玩偶：模型读取阶段已在 BedrockModel.render 内统一翻转 Y/Z，
+            // 模型正面朝 +Z，因此直接用 -yaw 让玩偶朝向玩家。
+            state.yRot = -yaw;
         }
         state.xRot = Mth.lerp(partialTick, dollEntity.xRotO, dollEntity.getXRot());
     }
@@ -109,6 +124,33 @@ public class DollEntityRender extends EntityRenderer<DollEntity, DollEntityRende
             renderBlock(state.displayBlockState, poseStack, collector);
         }
 
+        renderHoldItem(state, poseStack, collector);
+
+        poseStack.popPose();
+    }
+
+    private void renderHoldItem(DollEntityRenderState state, PoseStack poseStack, SubmitNodeCollector collector) {
+        if (state.holdItem.isEmpty()) {
+            return;
+        }
+
+        poseStack.pushPose();
+
+        Vector3fc itemTranslation = state.itemTranslation;
+        poseStack.translate(itemTranslation.x(), itemTranslation.y(), itemTranslation.z());
+
+        Vector3fc itemScale = state.itemScale;
+        poseStack.scale(itemScale.x(), itemScale.y(), itemScale.z());
+
+        Vector3fc itemRotation = state.itemRotation;
+        poseStack.mulPose(Axis.XP.rotationDegrees(itemRotation.x()));
+        poseStack.mulPose(Axis.YP.rotationDegrees(itemRotation.y()));
+        poseStack.mulPose(Axis.ZP.rotationDegrees(itemRotation.z()));
+
+        ItemStackRenderState itemRenderState = new ItemStackRenderState();
+        this.itemModelResolver.updateForNonLiving(itemRenderState, state.holdItem, ItemDisplayContext.GROUND, null);
+        itemRenderState.submit(poseStack, collector, 0xF000F0, OverlayTexture.NO_OVERLAY, 0);
+
         poseStack.popPose();
     }
 
@@ -133,13 +175,13 @@ public class DollEntityRender extends EntityRenderer<DollEntity, DollEntityRende
         }
 
         poseStack.translate(0.5, 1.5, 0.5);
-        poseStack.mulPose(Axis.ZN.rotationDegrees(180));
-        poseStack.mulPose(Axis.YN.rotationDegrees(180));
 
         BedrockModel finalModel = model;
         Identifier finalTexture = texture;
         collector.submitCustomGeometry(poseStack, RenderTypes.entityCutout(finalTexture), (pose, consumer) -> {
-            finalModel.render(poseStack, consumer, 0xF000F0, 0);
+            poseStack.last().pose().set(pose.pose());
+            poseStack.last().normal().set(pose.normal());
+            finalModel.render(poseStack, consumer, 0xF000F0, OverlayTexture.NO_OVERLAY);
         });
     }
 
@@ -148,6 +190,11 @@ public class DollEntityRender extends EntityRenderer<DollEntity, DollEntityRende
         movingBlockState.blockState = blockState;
         movingBlockState.blockPos = net.minecraft.core.BlockPos.ZERO;
         movingBlockState.randomSeedPos = net.minecraft.core.BlockPos.ZERO;
-        collector.submitMovingBlock(poseStack, movingBlockState, 0xF000F0);
+        if (net.minecraft.client.Minecraft.getInstance().level instanceof ClientLevel clientLevel) {
+            movingBlockState.biome = clientLevel.getBiome(movingBlockState.blockPos);
+            movingBlockState.cardinalLighting = clientLevel.cardinalLighting();
+            movingBlockState.lightEngine = clientLevel.getLightEngine();
+        }
+        collector.submitMovingBlock(poseStack, movingBlockState, 0);
     }
 }

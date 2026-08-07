@@ -25,6 +25,13 @@ public class DollClickEntityEvent {
         ItemStack mainHandItem = player.getMainHandItem();
 
         if (mainHandItem.is(ModItems.DOLL_ENTITY_ITEM) && GeneralConfig.DOLL_CAN_MOUNT_ENTITIES.get()) {
+            // 客户端只负责把交互包发给服务端并阻止原版交互，绝不创建实体。
+            // 若在客户端创建并骑乘一个未加入世界的实体（id 为 0），下一 tick 会因
+            // EntityTickList.contains -> getId() 抛 "Tried to access entity ID before ID assignment" 崩溃。
+            if (level.isClientSide()) {
+                return InteractionResult.SUCCESS;
+            }
+
             // 检查骑乘层数
             int ridingLayers = getRidingLayers(entity);
             if (ridingLayers >= MAX_RIDING_LAYERS) {
@@ -36,9 +43,7 @@ public class DollClickEntityEvent {
             dollEntity.setPos(entity.getX(), entity.getY() + 1.5, entity.getZ());
             dollEntity.setYRot(player.getYRot() - 180);
             if (dollEntity.startRiding(entity)) {
-                if (!level.isClientSide()) {
-                    level.addFreshEntity(dollEntity);
-                }
+                level.addFreshEntity(dollEntity);
                 entity.playSound(SoundEvents.WOOL_PLACE, 1.0F, 1.0F);
                 if (!player.getAbilities().instabuild) {
                     mainHandItem.shrink(1);

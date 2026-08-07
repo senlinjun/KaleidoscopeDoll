@@ -1,9 +1,7 @@
 package com.github.ysbbbbbb.kaleidoscopedoll.inventory;
 
 import com.github.ysbbbbbb.kaleidoscopedoll.KaleidoscopeDoll;
-import com.github.ysbbbbbb.kaleidoscopedoll.data.custom.ServerCustomDollLoader;
 import com.github.ysbbbbbb.kaleidoscopedoll.datagen.TagItem;
-import com.github.ysbbbbbb.kaleidoscopedoll.item.CustomDollItem;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.Container;
 import net.minecraft.world.SimpleContainer;
@@ -54,6 +52,12 @@ public class ComputerMenu extends AbstractContainerMenu {
             }
 
             @Override
+            public boolean mayPlace(ItemStack stack) {
+                // 输出槽绝不能通过快捷放入等方式接收物品
+                return false;
+            }
+
+            @Override
             public void onTake(Player player, ItemStack stack) {
                 super.onTake(player, stack);
                 ItemStack inputStack = input.getItem(0);
@@ -85,24 +89,10 @@ public class ComputerMenu extends AbstractContainerMenu {
         ItemStack stack = this.input.getItem(0);
         // 防止作弊，必须检查一次
         if (stack.is(TagItem.COMPUTER_TOKENS)) {
-            // 要么是玩家玩偶
-            if (doll.is(TagItem.PLAYER_DOLLS)) {
-                // 玩家玩偶不需要任何组件，故直接创建新的 stack 对象
+            // 电脑只能兑换捐赠者玩偶
+            if (doll.is(TagItem.SPONSORED_DOLLS)) {
+                // 捐赠者玩偶不需要任何组件，故直接创建新的 stack 对象
                 ItemStack newStack = new ItemStack(doll.getItem());
-                this.output.setItem(0, newStack);
-                return true;
-            }
-
-            // 要么是自定义玩偶
-            if (doll.is(TagItem.CUSTOM_DOLLS)) {
-                // 自定义的 ID 必须在服务端存在
-                String id = CustomDollItem.getModelId(doll);
-                if (id.isEmpty() || !ServerCustomDollLoader.getModels().contains(id)) {
-                    return false;
-                }
-                // 自定义玩偶仅允许 TAG_CUSTOM_DOLL_ID 组件
-                ItemStack newStack = new ItemStack(doll.getItem());
-                CustomDollItem.setModelId(newStack, id);
                 this.output.setItem(0, newStack);
                 return true;
             }
@@ -130,7 +120,7 @@ public class ComputerMenu extends AbstractContainerMenu {
                         input.setItem(0, inputStack);
                     }
                 }
-            } else if (!this.moveItemStackTo(slotItem, 0, 2, true)) {
+            } else if (!this.moveItemStackTo(slotItem, 0, 2, false)) {
                 return ItemStack.EMPTY;
             }
 

@@ -1,6 +1,9 @@
 {
   "model": {
-    "type": "minecraft:model",
-    "model": "kaleidoscope_doll:block/custom_doll"
+    "type": "minecraft:special",
+    "base": "minecraft:item/generated",
+    "model": {
+      "type": "kaleidoscope_doll:custom_doll"
+    }
   }
 }

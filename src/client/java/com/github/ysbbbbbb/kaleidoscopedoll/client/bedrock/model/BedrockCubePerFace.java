@@ -93,29 +93,29 @@ public class BedrockCubePerFace implements BedrockCube {
             consumer.addVertex(VERTICES[VERTEX_ORDER[i][0]].x, VERTICES[VERTEX_ORDER[i][0]].y, VERTICES[VERTEX_ORDER[i][0]].z)
                     .setColor(r, g, b, a)
                     .setUv(uvs[i][0], uvs[i][1])
-                    .setUv1(overlay, overlay)
-                    .setUv2(lightmap, lightmap)
+                    .setOverlay(overlay)
+                    .setLight(lightmap)
                     .setNormal(normals[i].x, normals[i].y, normals[i].z);
 
             consumer.addVertex(VERTICES[VERTEX_ORDER[i][1]].x, VERTICES[VERTEX_ORDER[i][1]].y, VERTICES[VERTEX_ORDER[i][1]].z)
                     .setColor(r, g, b, a)
                     .setUv(uvs[i][2], uvs[i][3])
-                    .setUv1(overlay, overlay)
-                    .setUv2(lightmap, lightmap)
+                    .setOverlay(overlay)
+                    .setLight(lightmap)
                     .setNormal(normals[i].x, normals[i].y, normals[i].z);
 
             consumer.addVertex(VERTICES[VERTEX_ORDER[i][2]].x, VERTICES[VERTEX_ORDER[i][2]].y, VERTICES[VERTEX_ORDER[i][2]].z)
                     .setColor(r, g, b, a)
                     .setUv(uvs[i][4], uvs[i][5])
-                    .setUv1(overlay, overlay)
-                    .setUv2(lightmap, lightmap)
+                    .setOverlay(overlay)
+                    .setLight(lightmap)
                     .setNormal(normals[i].x, normals[i].y, normals[i].z);
 
             consumer.addVertex(VERTICES[VERTEX_ORDER[i][3]].x, VERTICES[VERTEX_ORDER[i][3]].y, VERTICES[VERTEX_ORDER[i][3]].z)
                     .setColor(r, g, b, a)
                     .setUv(uvs[i][6], uvs[i][7])
-                    .setUv1(overlay, overlay)
-                    .setUv2(lightmap, lightmap)
+                    .setOverlay(overlay)
+                    .setLight(lightmap)
                     .setNormal(normals[i].x, normals[i].y, normals[i].z);
         }
     }

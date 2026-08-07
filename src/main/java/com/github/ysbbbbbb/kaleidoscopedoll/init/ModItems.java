@@ -16,11 +16,11 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 
 public final class ModItems {
-    public static final Item DOLL_MACHINE = new DollMachineBlockItem(ModBlocks.DOLL_MACHINE, itemProps("doll_machine"));
-    public static final Item PURPLE_DOLL_GIFT_BOX = new GiftBoxItem(ModBlocks.PURPLE_DOLL_GIFT_BOX, itemProps("purple_doll_gift_box"));
-    public static final Item GREEN_DOLL_GIFT_BOX = new GiftBoxItem(ModBlocks.GREEN_DOLL_GIFT_BOX, itemProps("green_doll_gift_box"));
-    public static final Item YELLOW_DOLL_GIFT_BOX = new GiftBoxItem(ModBlocks.YELLOW_DOLL_GIFT_BOX, itemProps("yellow_doll_gift_box"));
-    public static final Item COMPUTER = new ComputerBlockItem(ModBlocks.COMPUTER, itemProps("computer"));
+    public static final Item DOLL_MACHINE = new DollMachineBlockItem(ModBlocks.DOLL_MACHINE, blockItemProps("doll_machine"));
+    public static final Item PURPLE_DOLL_GIFT_BOX = new GiftBoxItem(ModBlocks.PURPLE_DOLL_GIFT_BOX, blockItemProps("purple_doll_gift_box"));
+    public static final Item GREEN_DOLL_GIFT_BOX = new GiftBoxItem(ModBlocks.GREEN_DOLL_GIFT_BOX, blockItemProps("green_doll_gift_box"));
+    public static final Item YELLOW_DOLL_GIFT_BOX = new GiftBoxItem(ModBlocks.YELLOW_DOLL_GIFT_BOX, blockItemProps("yellow_doll_gift_box"));
+    public static final Item COMPUTER = new ComputerBlockItem(ModBlocks.COMPUTER, blockItemProps("computer"));
     public static final Item TWEAKS_TOOL = new TweaksToolItem(itemProps("tweaks_tool"));
     public static final Item DOLL_ICON = new Item(itemProps("doll_icon"));
     public static final Item DOLL_ENTITY_ITEM = new DollEntityItem(itemProps("doll_entity_item"));
@@ -29,6 +29,10 @@ public final class ModItems {
     private static Item.Properties itemProps(String path) {
         return new Item.Properties().setId(
                 ResourceKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath(KaleidoscopeDoll.MOD_ID, path)));
+    }
+
+    private static Item.Properties blockItemProps(String path) {
+        return itemProps(path).useBlockDescriptionPrefix();
     }
 
     private static Item.Properties dollItemProps(String path) {

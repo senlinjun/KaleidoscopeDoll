@@ -1,52 +1,52 @@
 {
   "variants": {
     "rotation=0": {
-      "model": "kaleidoscope_doll:rot_doll/doll_65/rot_0"
+      "model": "kaleidoscope_doll:block/rot_doll/doll_65/rot_0"
     },
     "rotation=1": {
-      "model": "kaleidoscope_doll:rot_doll/doll_65/rot_1"
+      "model": "kaleidoscope_doll:block/rot_doll/doll_65/rot_1"
     },
     "rotation=10": {
-      "model": "kaleidoscope_doll:rot_doll/doll_65/rot_10"
+      "model": "kaleidoscope_doll:block/rot_doll/doll_65/rot_10"
     },
     "rotation=11": {
-      "model": "kaleidoscope_doll:rot_doll/doll_65/rot_11"
+      "model": "kaleidoscope_doll:block/rot_doll/doll_65/rot_11"
     },
     "rotation=12": {
-      "model": "kaleidoscope_doll:rot_doll/doll_65/rot_12"
+      "model": "kaleidoscope_doll:block/rot_doll/doll_65/rot_12"
     },
     "rotation=13": {
-      "model": "kaleidoscope_doll:rot_doll/doll_65/rot_13"
+      "model": "kaleidoscope_doll:block/rot_doll/doll_65/rot_13"
     },
     "rotation=14": {
-      "model": "kaleidoscope_doll:rot_doll/doll_65/rot_14"
+      "model": "kaleidoscope_doll:block/rot_doll/doll_65/rot_14"
     },
     "rotation=15": {
-      "model": "kaleidoscope_doll:rot_doll/doll_65/rot_15"
+      "model": "kaleidoscope_doll:block/rot_doll/doll_65/rot_15"
     },
     "rotation=2": {
-      "model": "kaleidoscope_doll:rot_doll/doll_65/rot_2"
+      "model": "kaleidoscope_doll:block/rot_doll/doll_65/rot_2"
     },
     "rotation=3": {
-      "model": "kaleidoscope_doll:rot_doll/doll_65/rot_3"
+      "model": "kaleidoscope_doll:block/rot_doll/doll_65/rot_3"
     },
     "rotation=4": {
-      "model": "kaleidoscope_doll:rot_doll/doll_65/rot_4"
+      "model": "kaleidoscope_doll:block/rot_doll/doll_65/rot_4"
     },
     "rotation=5": {
-      "model": "kaleidoscope_doll:rot_doll/doll_65/rot_5"
+      "model": "kaleidoscope_doll:block/rot_doll/doll_65/rot_5"
     },
     "rotation=6": {
-      "model": "kaleidoscope_doll:rot_doll/doll_65/rot_6"
+      "model": "kaleidoscope_doll:block/rot_doll/doll_65/rot_6"
     },
     "rotation=7": {
-      "model": "kaleidoscope_doll:rot_doll/doll_65/rot_7"
+      "model": "kaleidoscope_doll:block/rot_doll/doll_65/rot_7"
     },
     "rotation=8": {
-      "model": "kaleidoscope_doll:rot_doll/doll_65/rot_8"
+      "model": "kaleidoscope_doll:block/rot_doll/doll_65/rot_8"
     },
     "rotation=9": {
-      "model": "kaleidoscope_doll:rot_doll/doll_65/rot_9"
+      "model": "kaleidoscope_doll:block/rot_doll/doll_65/rot_9"
     }
   }
 }

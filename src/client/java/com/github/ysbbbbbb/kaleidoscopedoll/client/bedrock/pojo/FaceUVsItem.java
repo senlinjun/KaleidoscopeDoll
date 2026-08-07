@@ -31,8 +31,10 @@ public class FaceUVsItem {
     @Nullable
     public FaceItem getFace(Direction direction) {
         return switch (direction) {
-            case EAST -> west;
-            case WEST -> east;
+            // 模型读取阶段已统一翻转 Y/Z（见 BedrockModel.render），不再有渲染层的 X 翻转，
+            // 因此东/西面的贴图不再互换。
+            case EAST -> east;
+            case WEST -> west;
             case NORTH -> north;
             case SOUTH -> south;
             case UP -> down;

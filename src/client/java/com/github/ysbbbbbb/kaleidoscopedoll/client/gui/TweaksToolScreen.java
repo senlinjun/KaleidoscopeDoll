@@ -233,37 +233,37 @@ public class TweaksToolScreen extends Screen {
         int x = (this.width - 380) / 2;
         int y = (this.height - 200) / 2 + 10;
 
-        graphics.centeredText(font, Component.translatable("gui.kaleidoscope_doll.tweaks_tool.help"), x + 190, y - 35, 0xFFFFFF);
+        graphics.centeredText(font, Component.translatable("gui.kaleidoscope_doll.tweaks_tool.help"), x + 190, y - 35, 0xFFFFFFFF);
 
 
-        graphics.centeredText(font, Component.translatable("gui.kaleidoscope_doll.tweaks_tool.total_scale"), x + 59, y - 2, 0xFFFFFF);
-        graphics.centeredText(font, "X", x + 59, y + 15, 0xFFFFFF);
-        graphics.centeredText(font, "Y", x + 59, y + 35, 0xFFFFFF);
-        graphics.centeredText(font, "Z", x + 59, y + 55, 0xFFFFFF);
+        graphics.centeredText(font, Component.translatable("gui.kaleidoscope_doll.tweaks_tool.total_scale"), x + 59, y - 2, 0xFFFFFFFF);
+        graphics.centeredText(font, "X", x + 59, y + 15, 0xFFFFFFFF);
+        graphics.centeredText(font, "Y", x + 59, y + 35, 0xFFFFFFFF);
+        graphics.centeredText(font, "Z", x + 59, y + 55, 0xFFFFFFFF);
 
-        graphics.centeredText(font, Component.translatable("gui.kaleidoscope_doll.tweaks_tool.total_translation"), x + 59, y + 68, 0xFFFFFF);
-        graphics.centeredText(font, "X", x + 59, y + 85, 0xFFFFFF);
-        graphics.centeredText(font, "Y", x + 59, y + 105, 0xFFFFFF);
-        graphics.centeredText(font, "Z", x + 59, y + 125, 0xFFFFFF);
+        graphics.centeredText(font, Component.translatable("gui.kaleidoscope_doll.tweaks_tool.total_translation"), x + 59, y + 68, 0xFFFFFFFF);
+        graphics.centeredText(font, "X", x + 59, y + 85, 0xFFFFFFFF);
+        graphics.centeredText(font, "Y", x + 59, y + 105, 0xFFFFFFFF);
+        graphics.centeredText(font, "Z", x + 59, y + 125, 0xFFFFFFFF);
 
-        graphics.centeredText(font, Component.translatable("gui.kaleidoscope_doll.tweaks_tool.total_rotation"), x + 59, y + 138, 0xFFFFFF);
-        graphics.centeredText(font, "X", x + 59, y + 155, 0xFFFFFF);
-        graphics.centeredText(font, "Y", x + 59, y + 175, 0xFFFFFF);
+        graphics.centeredText(font, Component.translatable("gui.kaleidoscope_doll.tweaks_tool.total_rotation"), x + 59, y + 138, 0xFFFFFFFF);
+        graphics.centeredText(font, "X", x + 59, y + 155, 0xFFFFFFFF);
+        graphics.centeredText(font, "Y", x + 59, y + 175, 0xFFFFFFFF);
 
-        graphics.centeredText(font, Component.translatable("gui.kaleidoscope_doll.tweaks_tool.item_scale"), x + 319, y - 2, 0xFFFFFF);
-        graphics.centeredText(font, "X", x + 319, y + 15, 0xFFFFFF);
-        graphics.centeredText(font, "Y", x + 319, y + 35, 0xFFFFFF);
-        graphics.centeredText(font, "Z", x + 319, y + 55, 0xFFFFFF);
+        graphics.centeredText(font, Component.translatable("gui.kaleidoscope_doll.tweaks_tool.item_scale"), x + 319, y - 2, 0xFFFFFFFF);
+        graphics.centeredText(font, "X", x + 319, y + 15, 0xFFFFFFFF);
+        graphics.centeredText(font, "Y", x + 319, y + 35, 0xFFFFFFFF);
+        graphics.centeredText(font, "Z", x + 319, y + 55, 0xFFFFFFFF);
 
-        graphics.centeredText(font, Component.translatable("gui.kaleidoscope_doll.tweaks_tool.item_translation"), x + 319, y + 68, 0xFFFFFF);
-        graphics.centeredText(font, "X", x + 319, y + 85, 0xFFFFFF);
-        graphics.centeredText(font, "Y", x + 319, y + 105, 0xFFFFFF);
-        graphics.centeredText(font, "Z", x + 319, y + 125, 0xFFFFFF);
+        graphics.centeredText(font, Component.translatable("gui.kaleidoscope_doll.tweaks_tool.item_translation"), x + 319, y + 68, 0xFFFFFFFF);
+        graphics.centeredText(font, "X", x + 319, y + 85, 0xFFFFFFFF);
+        graphics.centeredText(font, "Y", x + 319, y + 105, 0xFFFFFFFF);
+        graphics.centeredText(font, "Z", x + 319, y + 125, 0xFFFFFFFF);
 
-        graphics.centeredText(font, Component.translatable("gui.kaleidoscope_doll.tweaks_tool.item_rotation"), x + 319, y + 138, 0xFFFFFF);
-        graphics.centeredText(font, "X", x + 319, y + 155, 0xFFFFFF);
-        graphics.centeredText(font, "Y", x + 319, y + 175, 0xFFFFFF);
-        graphics.centeredText(font, "Z", x + 319, y + 195, 0xFFFFFF);
+        graphics.centeredText(font, Component.translatable("gui.kaleidoscope_doll.tweaks_tool.item_rotation"), x + 319, y + 138, 0xFFFFFFFF);
+        graphics.centeredText(font, "X", x + 319, y + 155, 0xFFFFFFFF);
+        graphics.centeredText(font, "Y", x + 319, y + 175, 0xFFFFFFFF);
+        graphics.centeredText(font, "Z", x + 319, y + 195, 0xFFFFFFFF);
     }
 
     private static boolean hasShiftDown() {

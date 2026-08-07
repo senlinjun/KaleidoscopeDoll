@@ -12,6 +12,7 @@ import net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
+import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
@@ -28,6 +29,7 @@ public class CustomDollRender implements BlockEntityRenderer<CustomDollBlockEnti
     @Override
     public void extractRenderState(CustomDollBlockEntity blockEntity, CustomDollRenderState state, float partialTick,
                                    net.minecraft.world.phys.Vec3 pos, net.minecraft.client.renderer.feature.ModelFeatureRenderer.CrumblingOverlay crumblingOverlay) {
+        BlockEntityRenderer.super.extractRenderState(blockEntity, state, partialTick, pos, crumblingOverlay);
         state.modelId = blockEntity.getModelId();
         state.rotation = blockEntity.getBlockState().getValue(BlockStateProperties.ROTATION_16);
     }
@@ -55,17 +57,20 @@ public class CustomDollRender implements BlockEntityRenderer<CustomDollBlockEnti
             }
         }
 
-        float angle = -state.rotation * 22.5f;
+        // 与烘焙 rot_N 方块模型及实体玩偶保持一致：整体补 180° 后，
+        // 任意朝向放置时玩偶正脸都朝向放置者。
+        float angle = state.rotation * 22.5f - 180;
 
         poseStack.pushPose();
         poseStack.translate(0.5, 1.5, 0.5);
-        poseStack.mulPose(Axis.ZN.rotationDegrees(180));
         poseStack.mulPose(Axis.YN.rotationDegrees(angle));
 
         BedrockModel finalModel = model;
         Identifier finalTexture = texture;
         collector.submitCustomGeometry(poseStack, RenderTypes.entityCutout(finalTexture), (pose, consumer) -> {
-            finalModel.render(poseStack, consumer, 0xF000F0, 0);
+            poseStack.last().pose().set(pose.pose());
+            poseStack.last().normal().set(pose.normal());
+            finalModel.render(poseStack, consumer, 0xF000F0, OverlayTexture.NO_OVERLAY);
         });
 
         poseStack.popPose();

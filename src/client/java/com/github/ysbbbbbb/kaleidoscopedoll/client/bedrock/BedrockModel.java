@@ -183,6 +183,10 @@ public class BedrockModel {
     }
 
     public void render(PoseStack poseStack, VertexConsumer buffer, int packedLight, int packedOverlay) {
+        // 读取阶段的整体修正：基岩模型坐标是 y 向下、正面朝 -Z 的约定，
+        // 在这里统一翻转 Y/Z，使模型正面朝 +Z 且竖直方向与渲染空间一致。
+        // 这样各渲染路径（物品/实体/方块）都不再需要手写的 180° 补偿。
+        poseStack.scale(1.0F, -1.0F, -1.0F);
         for (BedrockPart model : shouldRender) {
             model.render(poseStack, buffer, packedLight, packedOverlay);
         }
