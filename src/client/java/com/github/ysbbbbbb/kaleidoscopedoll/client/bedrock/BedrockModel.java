@@ -1,5 +1,6 @@
 package com.github.ysbbbbbb.kaleidoscopedoll.client.bedrock;
 
+import com.github.ysbbbbbb.kaleidoscopedoll.client.bedrock.model.BedrockCube;
 import com.github.ysbbbbbb.kaleidoscopedoll.client.bedrock.model.BedrockCubeBox;
 import com.github.ysbbbbbb.kaleidoscopedoll.client.bedrock.model.BedrockCubePerFace;
 import com.github.ysbbbbbb.kaleidoscopedoll.client.bedrock.model.BedrockPart;
@@ -11,6 +12,8 @@ import net.minecraft.world.phys.AABB;
 
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.NotNull;
+import org.joml.Matrix4f;
+import org.joml.Vector3f;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
@@ -40,6 +43,10 @@ public class BedrockModel {
      * 模型的 AABB
      */
     protected AABB renderBoundingBox;
+    /**
+     * 模型实际渲染范围（懒计算缓存），见 {@link #getActualRenderBoundingBox()}
+     */
+    private AABB actualRenderBoundingBox;
     /**
      * 模型的 identifier，用于区分不同模型
      */
@@ -194,6 +201,83 @@ public class BedrockModel {
 
     public AABB getRenderBoundingBox() {
         return renderBoundingBox;
+    }
+
+    /**
+     * 计算模型实际渲染时的世界空间包围盒（模型单位，16=1 格）。
+     * <p>
+     * 与 {@link #getRenderBoundingBox()}（visible bounds，单位不一致且通常留有很大余量）不同，
+     * 这里直接遍历骨骼/方块网格并应用与渲染一致的平移/旋转/缩放，
+     * 得到的是 {@link BedrockModel#render} 翻转 Y/Z 之前、与
+     * DollSpecialModelRenderer 中 translate(0.5, 1.5, 0.5) 同空间的真实范围。
+     */
+    public AABB getActualRenderBoundingBox() {
+        if (actualRenderBoundingBox == null) {
+            actualRenderBoundingBox = computeActualRenderBoundingBox();
+        }
+        return actualRenderBoundingBox;
+    }
+
+    private AABB computeActualRenderBoundingBox() {
+        float[] min = {Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY};
+        float[] max = {Float.NEGATIVE_INFINITY, Float.NEGATIVE_INFINITY, Float.NEGATIVE_INFINITY};
+        Matrix4f identity = new Matrix4f();
+        for (BedrockPart root : shouldRender) {
+            accumulateRenderBox(root, identity, min, max);
+        }
+        if (min[0] > max[0] || min[1] > max[1] || min[2] > max[2]) {
+            // 没有任何可渲染网格时回退到 visible bounds
+            return renderBoundingBox;
+        }
+        return new AABB(min[0] * 16.0F, min[1] * 16.0F, min[2] * 16.0F,
+                max[0] * 16.0F, max[1] * 16.0F, max[2] * 16.0F);
+    }
+
+    private void accumulateRenderBox(BedrockPart part, Matrix4f matrix, float[] min, float[] max) {
+        if (!part.visible) {
+            return;
+        }
+        // 与 BedrockPart.render 一致：缩放过小直接退出
+        boolean xNearZero = -1E-5F < part.xScale && part.xScale < 1E-5F;
+        boolean yNearZero = -1E-5F < part.yScale && part.yScale < 1E-5F;
+        boolean zNearZero = -1E-5F < part.zScale && part.zScale < 1E-5F;
+        if ((xNearZero && yNearZero) || (xNearZero && zNearZero) || (yNearZero && zNearZero)) {
+            return;
+        }
+
+        Matrix4f current = new Matrix4f(matrix);
+        current.translate(part.x / 16.0F + part.offsetX, part.y / 16.0F + part.offsetY, part.z / 16.0F + part.offsetZ);
+        if (part.xRot != 0.0F || part.yRot != 0.0F || part.zRot != 0.0F) {
+            current.rotateZYX(part.zRot, part.yRot, part.xRot);
+        }
+        current.rotate(part.additionalQuaternion);
+        current.scale(part.xScale, part.yScale, part.zScale);
+
+        Vector3f corner = new Vector3f();
+        for (BedrockCube cube : part.cubes) {
+            float x = cube.getX();
+            float y = cube.getY();
+            float z = cube.getZ();
+            float w = cube.getWidth();
+            float h = cube.getHeight();
+            float d = cube.getDepth();
+            for (int i = 0; i < 8; i++) {
+                corner.set(x + ((i & 1) != 0 ? w : 0.0F),
+                        y + ((i & 2) != 0 ? h : 0.0F),
+                        z + ((i & 4) != 0 ? d : 0.0F));
+                corner.mulPosition(current);
+                min[0] = Math.min(min[0], corner.x);
+                min[1] = Math.min(min[1], corner.y);
+                min[2] = Math.min(min[2], corner.z);
+                max[0] = Math.max(max[0], corner.x);
+                max[1] = Math.max(max[1], corner.y);
+                max[2] = Math.max(max[2], corner.z);
+            }
+        }
+
+        for (BedrockPart child : part.children) {
+            accumulateRenderBox(child, current, min, max);
+        }
     }
 
     public HashMap<String, BedrockPart> getModelMap() {

@@ -18,12 +18,14 @@ import java.lang.reflect.Field;
 public final class DollItemModels {
     private static final Identifier DOLL_ENTITY = Identifier.fromNamespaceAndPath("kaleidoscope_doll", "doll_entity");
     private static final Identifier CUSTOM_DOLL = Identifier.fromNamespaceAndPath("kaleidoscope_doll", "custom_doll");
+    private static final Identifier CUSTOM_DOLL_ITEM = Identifier.fromNamespaceAndPath("kaleidoscope_doll", "custom_doll_item");
 
     private DollItemModels() {
     }
 
     public static void register() {
         register(ItemModels.class, "ID_MAPPER", DOLL_ENTITY, DollEntityItemModel.Unbaked.MAP_CODEC);
+        register(ItemModels.class, "ID_MAPPER", CUSTOM_DOLL_ITEM, CustomDollItemModel.Unbaked.MAP_CODEC);
         register(SpecialModelRenderers.class, "ID_MAPPER", CUSTOM_DOLL, DollSpecialModelRenderer.Unbaked.MAP_CODEC);
     }
 

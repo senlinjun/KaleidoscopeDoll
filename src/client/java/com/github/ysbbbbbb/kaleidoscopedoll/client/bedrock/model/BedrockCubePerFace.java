@@ -26,6 +26,30 @@ public class BedrockCubePerFace implements BedrockCube {
     // 记录哪些面是空的，不进行渲染，int 位掩码
     protected int emptyFacesMask = 0;
 
+    public float getX() {
+        return x;
+    }
+
+    public float getY() {
+        return y;
+    }
+
+    public float getZ() {
+        return z;
+    }
+
+    public float getWidth() {
+        return width;
+    }
+
+    public float getHeight() {
+        return height;
+    }
+
+    public float getDepth() {
+        return depth;
+    }
+
     static {
         for (int i = 0; i < VERTICES.length; i++) {
             VERTICES[i] = new Vector3f();

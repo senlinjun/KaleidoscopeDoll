@@ -3,6 +3,7 @@ package com.github.ysbbbbbb.kaleidoscopedoll.datagen;
 import com.github.ysbbbbbb.kaleidoscopedoll.KaleidoscopeDoll;
 import com.github.ysbbbbbb.kaleidoscopedoll.event.ModRegisterEvent;
 import com.github.ysbbbbbb.kaleidoscopedoll.init.ModBlocks;
+import com.github.ysbbbbbb.kaleidoscopedoll.client.render.CustomDollItemModel;
 import com.github.ysbbbbbb.kaleidoscopedoll.client.render.DollEntityItemModel;
 import com.github.ysbbbbbb.kaleidoscopedoll.client.render.DollSpecialModelRenderer;
 import com.github.ysbbbbbb.kaleidoscopedoll.init.ModItems;
@@ -16,7 +17,6 @@ import net.minecraft.client.data.models.blockstates.PropertyDispatch;
 import net.minecraft.client.renderer.block.dispatch.Variant;
 import net.minecraft.client.renderer.block.dispatch.VariantMutator;
 import net.minecraft.client.renderer.item.CuboidItemModelWrapper;
-import net.minecraft.client.renderer.item.SpecialModelWrapper;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.random.WeightedList;
@@ -89,8 +89,8 @@ public class BlockStateGenerator extends FabricModelProvider {
 
         generator.itemModelOutput.accept(ModItems.DOLL_ENTITY_ITEM, new DollEntityItemModel.Unbaked());
 
-        generator.itemModelOutput.accept(ModItems.CUSTOM_DOLL, new SpecialModelWrapper.Unbaked(
-                Identifier.withDefaultNamespace("item/generated"), Optional.empty(),
+        generator.itemModelOutput.accept(ModItems.CUSTOM_DOLL, new CustomDollItemModel.Unbaked(
+                modLoc("item/custom_doll"),
                 new DollSpecialModelRenderer.Unbaked()));
     }
 

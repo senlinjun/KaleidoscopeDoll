@@ -24,6 +24,24 @@ public interface BedrockCube {
     };
 
     /**
+     * 方块局部坐标原点（方块单位，16=1 格，相对所属骨骼）
+     */
+    float getX();
+
+    float getY();
+
+    float getZ();
+
+    /**
+     * 方块三轴尺寸（方块单位，16=1 格）
+     */
+    float getWidth();
+
+    float getHeight();
+
+    float getDepth();
+
+    /**
      * Compiles the cube's vertices and adds them to the provided vertex consumer
      * <p>
      * 编译 Cube 的顶点并将它们添加到提供的 VertexConsumer 中

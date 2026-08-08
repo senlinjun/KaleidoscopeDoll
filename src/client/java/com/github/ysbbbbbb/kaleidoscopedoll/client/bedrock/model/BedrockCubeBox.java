@@ -36,6 +36,30 @@ public class BedrockCubeBox implements BedrockCube {
     protected final float[] uvs;
     protected final int[][] uvOrder;
 
+    public float getX() {
+        return x;
+    }
+
+    public float getY() {
+        return y;
+    }
+
+    public float getZ() {
+        return z;
+    }
+
+    public float getWidth() {
+        return width;
+    }
+
+    public float getHeight() {
+        return height;
+    }
+
+    public float getDepth() {
+        return depth;
+    }
+
     static {
         for (int i = 0; i < VERTICES.length; i++) {
             VERTICES[i] = new Vector3f();
